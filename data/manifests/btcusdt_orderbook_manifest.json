@@ -1,0 +1,9 @@
+{
+  "symbol": "BTCUSDT",
+  "dataset_type": "orderbook",
+  "download_timestamp_utc": "2026-09-17T17:18:48.260911+00:00",
+  "row_count": 200,
+  "file_name": "btcusdt_orderbook_20260917_171848.csv",
+  "file_path": "C:\\Users\\Harshak\\OneDrive\\Desktop\\BTC_ML\\BTC_ML_System\\data\\raw\\btcusdt_orderbook_20260917_171848.csv",
+  "sha256": "d37b1e1e9ee42b84f0d9f6d749d482a29b7f0cb667627cfbe2cd832238f1a1b3"
+}

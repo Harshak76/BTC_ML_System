@@ -1,0 +1,107 @@
+# BTCUSDT 1-Hour System Configuration
+# Research-Grade Non-Repainting Machine Learning Trading System
+
+system:
+  name: "BTCUSDT 1h ML Trader"
+  seed: 42
+  version: "1.0.0"
+
+asset:
+  primary_symbol: "BTCUSDT"
+  secondary_symbol: "ETHUSDT"
+  exchange: "Binance Spot"
+  base_timeframe: "1h"
+  htf_timeframe: "4h"
+  direction: "long_only"
+  prediction_horizon: 12 # candles
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  manifests_dir: "data/manifests"
+  rest_url: "https://api.binance.com/api/v3/klines"
+  chunk_size: 1000
+
+features:
+  returns_windows: [1, 2, 3, 6, 12, 24, 48]
+  rsi_period: 14
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  adx_period: 14
+  volatility_windows: [12, 24, 48]
+  volume_windows: [6, 24]
+  scaler_type: "robust" # "standard" or "robust"
+
+labels:
+  method: "triple_barrier"
+  pt_multiplier: 1.5   # profit target multiplier for volatility
+  sl_multiplier: 1.0   # stop loss multiplier for volatility
+  max_vertical_barrier: 12 # candles
+  volatility_window: 24 # rolling window for volatility calculation
+  min_return: 0.002    # minimum return threshold to filter noise
+
+splits:
+  method: "purged_walk_forward"
+  n_splits: 5
+  train_ratio: 0.6
+  val_ratio: 0.2
+  test_ratio: 0.2
+  embargo_pct: 0.01    # 1% embargo period after validation
+
+regimes:
+  adx_trend_threshold: 20.0
+  ema_fast: 50
+  ema_slow: 200
+  volatility_high_quantile: 0.80
+
+models:
+  preferred_type: "lightgbm" # "logistic", "lightgbm", "xgboost", "ensemble"
+  use_nn: false              # PyTorch GRU/TCN disabled by default
+  buy_probability_threshold: 0.55
+  disagreement_threshold: 0.20
+  lightgbm_params:
+    n_estimators: 200
+    learning_rate: 0.03
+    max_depth: 5
+    num_leaves: 31
+    subsample: 0.8
+    colsample_bytree: 0.8
+    random_state: 42
+    verbose: -1
+  xgboost_params:
+    n_estimators: 200
+    learning_rate: 0.03
+    max_depth: 4
+    subsample: 0.8
+    colsample_bytree: 0.8
+    random_state: 42
+  logistic_params:
+    C: 1.0
+    max_iter: 1000
+    random_state: 42
+
+calibration:
+  method: "isotonic" # "isotonic" or "sigmoid"
+  n_cv_folds: 3
+
+risk:
+  initial_capital: 10000.0 # USDT
+  risk_per_trade_pct: 0.005 # 0.5% of current equity
+  max_daily_loss_pct: 0.010 # 1.0% of start-of-day equity
+  max_drawdown_pct: 0.100  # 10.0% max drawdown limit
+  min_reward_risk_ratio: 1.5
+  min_expected_edge_bps: 20 # 20 bps min edge after fees
+  cooldown_bars: 3
+  max_open_positions: 1
+  pyramiding: false
+
+execution:
+  commission_bps: 10 # 10 bps per side (0.10%)
+  slippage_bps: 5    # 5 bps per side (0.05%)
+  execution_timing: "next_bar_open"
+  ambiguous_bar_rule: "conservative_stop_first" # assume stop loss hit if both SL and TP in same bar
+
+output:
+  models_dir: "models"
+  reports_dir: "reports"

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Project data & artifacts
+crypto_ml_trader/data/raw/*.csv
+crypto_ml_trader/data/processed/*.csv
+data/raw/*.csv
+data/processed/*.csv
+crypto_ml_trader/models/*.joblib
+models/*.joblib
+reports/
+
+# Testing & IDE
+.pytest_cache/
+.coverage
+*.log
+.vscode/
+.idea/

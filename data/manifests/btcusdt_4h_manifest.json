@@ -1,0 +1,11 @@
+{
+  "symbol": "BTCUSDT",
+  "interval": "4h",
+  "download_timestamp_utc": "2026-09-17T17:18:47.220090+00:00",
+  "start_time_utc": "2026-08-18T20:00:00+00:00",
+  "end_time_utc": "2026-09-17T16:00:00+00:00",
+  "row_count": 180,
+  "file_name": "btcusdt_4h.csv",
+  "file_path": "C:\\Users\\Harshak\\OneDrive\\Desktop\\BTC_ML\\BTC_ML_System\\data\\raw\\btcusdt_4h.csv",
+  "sha256": "3da671fcaffc7db40c87241a2f960bb39476c74657ccd79696c0d37aea8a9689"
+}
