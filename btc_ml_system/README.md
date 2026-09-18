@@ -82,9 +82,16 @@ python -m pytest btc_ml_system/tests/ -v
 ```
 
 ### 3. Run Live Paper Trader Tick
+
+Run directly from terminal:
+```bash
+python -c "import yaml; from btc_ml_system.src.paper_trader import PaperTrader; cfg = yaml.safe_load(open('btc_ml_system/configs/btcusdt_1h_v2.yaml')); print(PaperTrader(cfg).run_tick())"
+```
+
+Or in a Python script:
 ```python
-from btc_ml_system.src.paper_trader import PaperTrader
 import yaml
+from btc_ml_system.src.paper_trader import PaperTrader
 
 with open("btc_ml_system/configs/btcusdt_1h_v2.yaml") as f:
     config = yaml.safe_load(f)
