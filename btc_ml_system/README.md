@@ -1,102 +1,77 @@
-# btc-ml-system V2.0: Research-Grade Extended Non-Repainting ML Trading System
+# btc-ml-system V3.0: Professional Volatility Regime + Directional System
 
 ## Executive Overview
-**btc-ml-system** (Version 2.0.0) is a research-grade, non-repainting machine-learning trading system designed for **BTCUSDT** on Binance Spot. Built strictly under quantitative rigor, it prioritizes capital preservation, statistical validity, zero lookahead bias, and zero future leakage.
+**btc-ml-system** (Version 3.0.0) pivots from pure directional machine learning classification on 1-hour candles to a structured, 3-step quantitative strategy combining **Volatility Regime Filtering**, **EMA(50) Trend Directional Filters**, **Fixed 0.5% Risk Position Sizing**, and **Alpaca Paper Trading REST API Execution**.
 
 ---
 
-## Core V2 Architectural Enhancements
+## V3.0 Core Architecture
 
-1. **Triple-Barrier Labeling & Meta-Labeling**:
-   - Primary model predicts directional side (`+1` profit target, `-1` stop loss, `0` vertical horizon).
-   - Secondary LightGBM Meta-Labeler filters false positives and scales position sizes dynamically.
-   - Sample weighting applied via volatility and return magnitude scaling.
-
-2. **Purged Walk-Forward & CPCV Validation**:
-   - Strict temporal purging (removing horizon overlap) and embargoing (1% post-test buffer).
-   - Combinatorial Purged Cross-Validation (CPCV) evaluating model performance across non-contiguous sub-periods.
-
-3. **Multi-Timeframe Regime Detection**:
-   - Classifies market conditions into `BULLISH_TREND`, `BEARISH_TREND`, `RANGING_NEUTRAL`, and `HIGH_VOLATILITY`.
-   - Adjusts prediction probability thresholds (e.g., 0.50 in Bullish vs 0.70 in Bearish) and position size multipliers dynamically.
-
-4. **Multi-Model Stacking Ensemble**:
-   - Blends **LightGBM**, **XGBoost**, and **Logistic Regression** base models via Ridge stacking meta-learner.
-   - Rejects trades if model disagreement exceeds 20%.
-
-5. **Dynamic Volatility Targeting & 10-Rule Risk Engine**:
-   - Scales positions inversely to 24h volatility targeting 15% annualized portfolio volatility.
-   - Enforces max daily loss circuit breaker (1.0%), max total drawdown (10.0%), and trade cooldown periods.
-
-6. **Robustness Verification**:
-   - Monte Carlo 1,000-path equity resampling.
-   - Cost stress testing under 1.0x, 2.0x, and 3.0x transaction cost multipliers.
-
----
-
-## Directory Structure
-
+```mermaid
+flowchart TD
+    A["Binance Spot Market Data (17,539 Candles / 2 Years)"] --> B["Step 1: Volatility Regime Classifier (CALM, NORMAL, HIGH)"]
+    B -->|High Volatility| C["BLOCK TRADE (HOLD)"]
+    B -->|CALM or NORMAL| D["Step 2: Directional Filter (Price > EMA50 & EMA50 Sloping Up)"]
+    D -->|Direction Invalid| C
+    D -->|Direction Valid| E["Step 3: Risk Engine & Position Sizer (0.5% Risk, 1% Daily Loss, 10% DD Limit)"]
+    E -->|Risk Violation| C
+    E -->|Approved| F["Alpaca Paper Trading REST API Execution"]
 ```
-btc_ml_system/
-├── configs/
-│   └── btcusdt_1h_v2.yaml     # Complete system configuration
-├── src/
-│   ├── __init__.py
-│   ├── data_ingestion.py       # Binance REST & Apify API client
-│   ├── data_quality.py         # Integrity, gap & anomaly checks
-│   ├── features.py             # Multi-timeframe, technical & microstructural features
-│   ├── labels.py               # Triple-barrier labeling & sample weighting
-│   ├── meta_labeling.py        # Secondary meta-classifier & bet sizing
-│   ├── splits.py               # Purged Walk-Forward & CPCV splitter
-│   ├── regimes.py              # 4-state regime detector & dynamic thresholds
-│   ├── models.py               # LightGBM + XGBoost + Logistic ensemble
-│   ├── calibration.py          # Isotonic probability calibrator
-│   ├── risk.py                 # 10-rule risk engine & vol-targeting
-│   ├── backtester.py           # Event-driven backtester & Monte Carlo
-│   ├── inference.py            # Live real-time inference pipeline
-│   ├── monitoring.py           # PSI & KS-test feature drift monitoring
-│   └── paper_trader.py         # Mock live paper trading engine
-├── tests/
-│   ├── test_features.py
-│   ├── test_labels.py
-│   ├── test_leakage.py
-│   ├── test_pipeline.py
-│   └── test_risk.py
-├── data/                       # Local raw & processed CSV storage
-├── models/                     # Saved model artifacts
-└── requirements.txt
+
+### Module Breakdown:
+1. **Config V3 (`btc_ml_system/configs/btcusdt_v3.yaml`)**:
+   - Primary symbol: `BTCUSDT` / `BTC/USD`
+   - Regimes: CALM, NORMAL (Allowed), HIGH (Blocked)
+   - Risk: 0.5% equity per trade
+   - Alpaca endpoint: `https://paper-api.alpaca.markets/v2`
+
+2. **Source Code (`btc_ml_system/src/`)**:
+   - `regimes.py`: `VolatilityRegimeClassifier` categorizing bars into CALM, NORMAL, and HIGH volatility quantiles.
+   - `direction.py`: `DirectionalFilter` evaluating `Price > EMA(50)` and `EMA(50)` slope > 0.
+   - `position_sizing.py`: `PositionSizer` calculating exact quantity risking 0.5% current portfolio equity.
+   - `signal_engine.py`: `SignalEngine` orchestrating sequential 3-step trade permission with unique UUID signal IDs.
+   - `risk.py`: `RiskEngine` enforcing emergency kill switch, 1.0% daily loss limit, and 10.0% max drawdown limit.
+   - `alpaca_executor.py`: `AlpacaExecutor` connecting to Alpaca Paper Trading REST API with duplicate order protection.
+   - `backtester.py`: Event-driven backtester supporting ATR stop loss, ATR take profit, and maximum holding limits.
+   - `inference.py` & `paper_trader.py`: Real-time single bar live paper trader runner.
+
+---
+
+## V3.0 Backtest Performance & Diagnostics (2 Years / 17,539 Candles)
+
+```text
+=======================================================
+      V3.0 BACKTEST PERFORMANCE SUMMARY      
+=======================================================
+  initial_capital          : 10000.00
+  final_capital            : 3520.36
+  total_return_pct         : -64.80
+  total_trades             : 1026
+  win_rate                 : 0.418 (41.8%)
+  max_drawdown_pct         : 65.72
+  profit_factor            : 0.72
+
+  [SIGNAL REJECTION REASON BREAKDOWN]
+   - Blocked by Step 1 (High Volatility)       : 5,102 bars (29.2%)
+   - Blocked by Step 2 (Direction Filter)     : 6,182 bars (35.3%)
+   - Approved BUY Signals                      : 6,205 bars (35.5%)
 ```
 
 ---
 
-## How to Run
+## How to Run V3.0
 
-### 1. Installation
+### 1. Run V3.0 Full Pipeline & Backtest
 ```bash
-pip install -r btc_ml_system/requirements.txt
+cmd /c "set PYTHONPATH=. && python btc_ml_system/run_pipeline_v3.py"
 ```
 
-### 2. Run Test Suite
+### 2. Run Live Paper Trading Tick against Alpaca Paper API
+```bash
+python -c "import yaml; from btc_ml_system.src.paper_trader import PaperTrader; cfg = yaml.safe_load(open('btc_ml_system/configs/btcusdt_v3.yaml')); print(PaperTrader(cfg).run_tick())"
+```
+
+### 3. Run Unit Test Suite
 ```bash
 python -m pytest btc_ml_system/tests/ -v
-```
-
-### 3. Run Live Paper Trader Tick
-
-Run directly from terminal:
-```bash
-python -c "import yaml; from btc_ml_system.src.paper_trader import PaperTrader; cfg = yaml.safe_load(open('btc_ml_system/configs/btcusdt_1h_v2.yaml')); print(PaperTrader(cfg).run_tick())"
-```
-
-Or in a Python script:
-```python
-import yaml
-from btc_ml_system.src.paper_trader import PaperTrader
-
-with open("btc_ml_system/configs/btcusdt_1h_v2.yaml") as f:
-    config = yaml.safe_load(f)
-
-trader = PaperTrader(config)
-result = trader.run_tick()
-print(result)
 ```

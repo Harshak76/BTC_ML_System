@@ -43,7 +43,12 @@ class DataIngestion:
         Fetch historical klines from Binance public API using timestamp pagination.
         Guarantees UTC index and non-repainting historical OHLCV structure.
         """
-        start_ts = int(pd.to_datetime(start_str, utc=True).timestamp() * 1000)
+        if "ago" in start_str:
+            days = int(start_str.split()[0])
+            start_ts = int((pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=days)).timestamp() * 1000)
+        else:
+            start_ts = int(pd.to_datetime(start_str, utc=True).timestamp() * 1000)
+            
         end_ts = int(pd.to_datetime(end_str, utc=True).timestamp() * 1000) if end_str else int(time.time() * 1000)
 
         all_klines = []
@@ -177,12 +182,16 @@ class DataIngestion:
     ) -> pd.DataFrame:
         """Load locally cached raw CSV if recent, or fetch fresh."""
         save_path = os.path.join(self.raw_dir, f"{symbol.lower()}_{interval}.csv")
+        min_required_rows = (days_back * 24 * 0.7) if interval == "1h" else (days_back * 6 * 0.7)
         if os.path.exists(save_path):
             df = pd.read_csv(save_path)
-            df["open_time"] = pd.to_datetime(df["open_time"], utc=True)
-            df["close_time"] = pd.to_datetime(df["close_time"], utc=True)
-            logger.info(f"Loaded {len(df)} rows from local cache: {save_path}")
-            return df
+            if len(df) >= min_required_rows:
+                df["open_time"] = pd.to_datetime(df["open_time"], utc=True)
+                df["close_time"] = pd.to_datetime(df["close_time"], utc=True)
+                logger.info(f"Loaded {len(df)} rows from local cache: {save_path}")
+                return df
+            else:
+                logger.info(f"Local cache at {save_path} only has {len(df)} rows, but {min_required_rows:.0f} rows requested. Re-fetching full history from Binance...")
         
         start_str = (pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=days_back)).strftime("%Y-%m-%d")
         return self.fetch_binance_klines(symbol=symbol, interval=interval, start_str=start_str)

@@ -1,0 +1,68 @@
+# btc-ml-system V3.0 Configuration
+# Professional Volatility Regime + Directional Filter Trading System with Alpaca Execution Safety
+
+system:
+  name: "BTCUSDT ML Trader V3"
+  version: "3.0.0"
+  seed: 42
+
+asset:
+  primary_symbol: "BTCUSDT"
+  alpaca_symbol: "BTC/USD"
+  exchange: "Binance Spot (Data) / Alpaca Paper (Execution)"
+  base_timeframe: "1h"
+  direction: "long_only"
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  manifests_dir: "data/manifests"
+  rest_url: "https://api.binance.com/api/v3/klines"
+  chunk_size: 1000
+  history_years: 2
+
+volatility_regime:
+  window: 24
+  calm_quantile: 0.33
+  high_quantile: 0.67
+  allowed_regimes: ["CALM", "NORMAL"]  # Block trades in HIGH
+  high_vol_size_multiplier: 0.0
+
+direction_filter:
+  ema_period: 50
+  slope_lookback: 3
+  require_price_above_ema: true
+  require_ema_sloping_up: true
+
+exit_rules:
+  atr_period: 14
+  stop_loss_atr_mult: 1.5
+  take_profit_atr_mult: 2.5
+  max_holding_bars: 24
+  trailing_stop: true
+
+position_sizing:
+  risk_per_trade_pct: 0.005  # Exactly 0.5% of current equity
+  max_capital_fraction: 0.25
+  min_order_notional: 10.0
+
+risk:
+  initial_capital: 10000.0
+  max_daily_loss_pct: 0.010   # 1.0% circuit breaker
+  max_drawdown_pct: 0.100     # 10.0% total drawdown limit
+  cooldown_bars: 2
+  kill_switch_enabled: true
+
+alpaca:
+  endpoint: "https://paper-api.alpaca.markets/v2"
+  paper_trading: true
+  api_key_env: "ALPACA_API_KEY"
+  secret_key_env: "ALPACA_SECRET_KEY"
+
+robustness:
+  monte_carlo_paths: 1000
+  stress_cost_multipliers: [1.0, 2.0, 3.0]
+
+output:
+  models_dir: "models"
+  reports_dir: "reports"

@@ -1,0 +1,193 @@
+# btc-ml-system V2.1 Configuration
+# Research-Grade Extended Non-Repainting ML Trading System with Relaxed Thresholds & Extended Diagnostics
+
+system:
+  name: "BTCUSDT 1h ML Trader V2.1"
+  version: "2.1.0"
+  seed: 42
+
+asset:
+  primary_symbol: "BTCUSDT"
+  secondary_symbol: "ETHUSDT"
+  exchange: "Binance Spot"
+  base_timeframe: "1h"
+  htf_timeframe: "4h"
+  direction: "long_only"
+  prediction_horizon: 12
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  manifests_dir: "data/manifests"
+  rest_url: "https://api.binance.com/api/v3/klines"
+  biquote_url: "https://biquote.io/api"
+  chunk_size: 1000
+  history_years: 2  # V2.1: 2 years (~17,520 1h bars) for robust model training
+
+features:
+  returns_windows: [1, 2, 3, 6, 12, 24, 48]
+  rsi_period: 14
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  adx_period: 14
+  volatility_windows: [12, 24, 48]
+  volume_windows: [6, 24]
+  scaler_type: "robust"
+  interaction_features: true
+  volume_imbalance: true
+  buy_sell_pressure: true
+  volatility_regime_quantiles: [0.25, 0.50, 0.75]
+  feature_stability_min_corr: 0.3
+
+labels:
+  method: "triple_barrier"
+  pt_multiplier: 1.5
+  sl_multiplier: 1.0
+  max_vertical_barrier: 12
+  volatility_window: 24
+  min_return: 0.002
+  three_class: true
+  meta_labeling: true
+  sample_weight_by_volatility: true
+  sample_weight_by_return_magnitude: true
+
+splits:
+  method: "purged_walk_forward"
+  n_splits: 5
+  train_ratio: 0.6
+  val_ratio: 0.2
+  test_ratio: 0.2
+  embargo_pct: 0.01
+  label_horizon: 12
+  cpcv_n_groups: 6
+  cpcv_n_test_groups: 2
+  multiple_oos_windows: 3
+
+regimes:
+  adx_trend_threshold: 20.0
+  ema_fast: 50
+  ema_slow: 200
+  volatility_high_quantile: 0.80
+  use_1h_regime: true
+  use_4h_regime: true
+  transition_lookback: 5
+  # V2.1: Relaxed & realistic regime thresholds to prevent signal starvation
+  regime_dependent_thresholds:
+    BULLISH_TREND:
+      buy_prob_threshold: 0.52
+      position_size_multiplier: 1.0
+    BEARISH_TREND:
+      buy_prob_threshold: 0.58
+      position_size_multiplier: 0.5
+    RANGING_NEUTRAL:
+      buy_prob_threshold: 0.54
+      position_size_multiplier: 0.75
+    HIGH_VOLATILITY:
+      buy_prob_threshold: 0.56
+      position_size_multiplier: 0.5
+
+models:
+  preferred_type: "ensemble"
+  use_nn: false
+  seed: 42
+  buy_probability_threshold: 0.54  # V2.1 default threshold
+  disagreement_threshold: 0.25     # V2.1 relaxed disagreement filter
+  lightgbm_params:
+    n_estimators: 300
+    learning_rate: 0.02
+    max_depth: 5
+    num_leaves: 31
+    subsample: 0.8
+    colsample_bytree: 0.8
+    min_child_samples: 20
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+    random_state: 42
+    verbose: -1
+  xgboost_params:
+    n_estimators: 300
+    learning_rate: 0.02
+    max_depth: 4
+    subsample: 0.8
+    colsample_bytree: 0.8
+    min_child_weight: 5
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+    random_state: 42
+  logistic_params:
+    C: 1.0
+    max_iter: 1000
+    random_state: 42
+  tcn_params:
+    sequence_length: 48
+    n_channels: [32, 16]
+    kernel_size: 3
+    dropout: 0.2
+    lr: 0.001
+    epochs: 50
+    batch_size: 64
+    patience: 10
+  gru_params:
+    sequence_length: 48
+    hidden_size: 32
+    n_layers: 2
+    dropout: 0.2
+    lr: 0.001
+    epochs: 50
+    batch_size: 64
+    patience: 10
+  stacking:
+    meta_model: "ridge"
+    use_calibrated_probs: true
+
+calibration:
+  method: "isotonic"
+  n_cv_folds: 3
+
+meta_labeling:
+  enabled: true
+  model_type: "lightgbm"
+  min_primary_prob: 0.50
+  bet_size_method: "meta_prob"
+  min_bet_size: 0.10  # V2.1: prevent total bet collapse on marginal probability
+
+risk:
+  initial_capital: 10000.0
+  risk_per_trade_pct: 0.005
+  max_daily_loss_pct: 0.010
+  max_drawdown_pct: 0.100
+  min_reward_risk_ratio: 1.5
+  min_expected_edge_bps: 20
+  cooldown_bars: 2  # V2.1: reduced cooldown to 2 bars
+  max_open_positions: 1
+  pyramiding: false
+  volatility_targeting: true
+  target_annual_vol: 0.15
+  vol_scaling_lookback: 24
+  correlation_exposure_limit: 0.80
+
+execution:
+  commission_bps: 10
+  slippage_bps: 5
+  execution_timing: "next_bar_open"
+  ambiguous_bar_rule: "conservative_stop_first"
+
+robustness:
+  monte_carlo_paths: 1000
+  stress_cost_multipliers: [1.0, 2.0, 3.0]
+  threshold_diagnostic_grid: [0.50, 0.52, 0.54, 0.56, 0.58, 0.60]  # V2.1 diagnostic grid
+  external_validation_symbol: "ETHUSDT"
+
+monitoring:
+  psi_threshold: 0.20
+  ks_threshold: 0.10
+  prediction_drift_window: 100
+  retrain_signal_threshold: 0.25
+  log_every_decision: true
+
+output:
+  models_dir: "models"
+  reports_dir: "reports"
+  shap_enabled: true
+  shap_top_n_features: 10
