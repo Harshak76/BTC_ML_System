@@ -13,9 +13,12 @@ venv.bak/
 # Project data & artifacts
 crypto_ml_trader/data/raw/*.csv
 crypto_ml_trader/data/processed/*.csv
+btc_ml_system/data/raw/*.csv
+btc_ml_system/data/processed/*.csv
 data/raw/*.csv
 data/processed/*.csv
 crypto_ml_trader/models/*.joblib
+btc_ml_system/models/*.joblib
 models/*.joblib
 reports/
 

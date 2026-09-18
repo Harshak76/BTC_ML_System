@@ -1,0 +1,16 @@
+fastapi>=0.100.0
+uvicorn>=0.22.0
+lightgbm>=3.3.5
+xgboost>=1.7.5
+scikit-learn>=1.2.2
+pandas>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+joblib>=1.2.0
+pyyaml>=6.0
+requests>=2.31.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+pytest>=7.3.0
+apify-client>=1.0.0
+shap>=0.42.0
