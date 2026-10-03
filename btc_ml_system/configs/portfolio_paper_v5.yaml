@@ -1,0 +1,53 @@
+system:
+  name: "Alpaca Paper Trading Portfolio Mode V5.0"
+  version: "5.0.0"
+  seed: 42
+
+alpaca:
+  endpoint: "https://paper-api.alpaca.markets/v2"
+  api_key: "PK3UB43HIIYEFQ3GVKUPYIK72N"
+  api_key_env: "ALPACA_API_KEY"
+  secret_key_env: "ALPACA_SECRET_KEY"
+  dry_run: false                      # Set true for dry-run mode, false for Alpaca Paper API execution
+  poll_interval_seconds: 30           # Live loop poll interval in seconds
+
+portfolio:
+  initial_capital: 10000.0            # $10,000 Starting Capital (or read live from Alpaca Account)
+  weights:
+    equity_basket: 0.50               # 50% Equities total (10% each: AAPL, MSFT, NVDA, TSLA, AMZN)
+    BTCUSDT: 0.25                     # 25% BTC 4H Strategy
+    ETHUSDT: 0.25                     # 25% ETH 1H Strategy
+
+  risk_limits:
+    max_portfolio_risk_pct: 0.03       # Max 3.0% combined open dollar risk across all positions
+    max_daily_loss_pct: 0.020          # 2.0% max daily portfolio loss limit
+    max_drawdown_limit_pct: 0.10       # 10% max portfolio drawdown circuit breaker
+    max_position_value_usd: 2500.0     # Hard cap per single position size ($2,500 max)
+    max_position_equity_pct: 0.30      # Max 30% account equity per single asset
+
+  correlation_control:
+    enabled: true
+    lookback_window: 30                # 30-bar rolling return window for correlation matrix
+    max_correlation_threshold: 0.70    # Block entry if correlation > 0.70 with any currently open position
+
+symbols:
+  equity_symbols: ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN"]
+  crypto_symbols: ["BTCUSDT", "ETHUSDT"]
+
+alpaca_symbol_map:
+  AAPL: "AAPL"
+  MSFT: "MSFT"
+  NVDA: "NVDA"
+  TSLA: "TSLA"
+  AMZN: "AMZN"
+  BTCUSDT: "BTC/USD"
+  ETHUSDT: "ETH/USD"
+
+component_configs:
+  AAPL: "configs/aapl_v4.3.yaml"
+  MSFT: "configs/msft_v4.3.yaml"
+  NVDA: "configs/nvda_v4.3.yaml"
+  TSLA: "configs/tsla_v4.3.yaml"
+  AMZN: "configs/amzn_v4.3.yaml"
+  BTCUSDT: "configs/btc_4h_v4.5.yaml"
+  ETHUSDT: "configs/eth_1h_v4.5.yaml"

@@ -1,0 +1,55 @@
+system:
+  name: "BTC Crypto Trader V4.2"
+  version: "4.2.0"
+  seed: 42
+
+asset:
+  symbol: "BTCUSDT"
+  alpaca_symbol: "BTC/USD"
+  asset_type: "crypto"
+  data_provider: "binance"
+  base_timeframe: "1h"
+  htf_timeframe: "4h"
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  history_years: 2
+
+strategy:
+  name: "crypto_regime_momentum"
+  params:
+    htf_ema_period: 50
+    htf_slope_lookback: 3
+    bb_period: 20
+    bb_std_mult: 2.0
+    max_bb_bandwidth: 0.05
+    rsi_period: 14
+    min_rsi: 52.0
+    atr_period: 14
+    sl_atr_multiplier: 1.5
+    tp_atr_multiplier: 3.5
+
+volatility_regime:
+  window: 24
+  calm_quantile: 0.33
+  high_quantile: 0.67
+  allowed_regimes: ["CALM"]
+
+risk_engine:
+  initial_capital: 10000.0
+  risk_per_trade_pct: 0.005
+  max_daily_loss_pct: 0.010
+  max_drawdown_limit_pct: 0.10
+  cooldown_bars: 12
+
+position_sizer:
+  method: "fixed_risk"
+  risk_pct: 0.005
+  min_qty: 0.001
+
+execution:
+  provider: "alpaca"
+  paper_trading: true
+  commission_bps: 10
+  slippage_bps: 5

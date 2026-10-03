@@ -1,0 +1,81 @@
+# btc-ml-system V3.4 Configuration
+# Ultra-Strict Market Structure Breakout + Light ML Meta-Labeler System
+
+system:
+  name: "BTCUSDT ML Trader V3.4"
+  version: "3.4.0"
+  seed: 42
+
+asset:
+  primary_symbol: "BTCUSDT"
+  alpaca_symbol: "BTC/USD"
+  exchange: "Binance Spot (Data) / Alpaca Paper (Execution)"
+  base_timeframe: "1h"
+  htf_timeframe: "4h"
+  direction: "long_only"
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  manifests_dir: "data/manifests"
+  rest_url: "https://api.binance.com/api/v3/klines"
+  chunk_size: 1000
+  history_years: 2
+
+volatility_regime:
+  window: 24
+  calm_quantile: 0.33
+  high_quantile: 0.67
+  allowed_regimes: ["CALM", "NORMAL"]  # Block trades in HIGH
+  high_vol_size_multiplier: 0.0
+
+htf_confirmation:
+  enabled: true
+  ema_period: 50
+  slope_lookback: 3
+  require_close_above_ema: true
+  require_ema_sloping_up: true
+
+direction_filter:
+  method: "structure_breakout"
+  lookback_period: 20
+  breakout_buffer_pct: 0.004        # Stricter 0.4% breakout above 20-bar high
+  min_volume_ratio: 1.35            # Volume >= 1.35x 24h rolling avg
+  min_body_ratio: 0.50              # Bullish body >= 50% of bar range
+  require_ema_alignment: true       # 1h Short-Term Trend Quality (EMA20 > EMA50)
+  ema_fast: 20
+  ema_slow: 50
+
+meta_labeler:
+  enabled: true
+  model_type: "logistic_regression"  # "logistic_regression" or "lightgbm"
+  min_probability_threshold: 0.55    # Only approve trades with P(Win) >= 0.55
+  features:
+    - "rsi_14"
+    - "vol_ratio_24h"
+    - "atr_pct"
+    - "ema20_50_dist_pct"
+    - "body_ratio"
+    - "breakout_dist_pct"
+
+signal_engine:
+  atr_period: 14
+  sl_atr_multiplier: 1.5            # Risk per trade ATR distance
+  tp_atr_multiplier: 3.0            # Take Profit distance (Enforces 2.0x R:R ratio)
+  min_risk_reward_ratio: 2.0
+
+risk_engine:
+  account_capital: 10000.0
+  risk_per_trade_pct: 0.005         # Risk 0.5% of equity per trade
+  max_daily_loss_pct: 0.010         # 1.0% max daily loss limit
+  max_drawdown_limit_pct: 0.10      # 10.0% max drawdown limit
+  cooldown_bars: 12                 # 12-bar cooldown between entries
+
+position_sizer:
+  method: "fixed_risk"
+  risk_pct: 0.005
+  min_qty: 0.001
+  max_leverage: 1.0
+
+alpaca:
+  paper_trading: true

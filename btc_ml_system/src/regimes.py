@@ -24,6 +24,7 @@ class VolatilityRegimeClassifier:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.vol_cfg = config.get("volatility_regime", {})
+        self.enabled = self.vol_cfg.get("enabled", True)
         self.window = self.vol_cfg.get("window", 24)
         self.calm_q = self.vol_cfg.get("calm_quantile", 0.33)
         self.high_q = self.vol_cfg.get("high_quantile", 0.67)
@@ -60,7 +61,10 @@ class VolatilityRegimeClassifier:
                 state = VolatilityRegimeState.NORMAL.value
 
             states.append(state)
-            is_favorable.append(state in self.allowed_regimes)
+            if not self.enabled:
+                is_favorable.append(True)
+            else:
+                is_favorable.append(state in self.allowed_regimes)
 
         df["volatility_regime"] = states
         df["vol_regime_favorable"] = is_favorable

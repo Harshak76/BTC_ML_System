@@ -1,0 +1,21 @@
+system:
+  name: "Simple Multi-Asset Portfolio Mode V5.0"
+  version: "5.0.0"
+  seed: 42
+
+portfolio:
+  initial_capital: 100000.0   # $100,000 Total Portfolio Starting Capital
+  weights:
+    equity_basket: 0.50       # 50% Equities total (10% each: AAPL, MSFT, NVDA, TSLA, AMZN)
+    BTCUSDT: 0.25             # 25% BTC 4H Strategy
+    ETHUSDT: 0.25             # 25% ETH 1H Strategy
+
+  risk_limits:
+    max_portfolio_risk_pct: 0.03       # Max 3.0% combined open dollar risk across all positions
+    max_daily_loss_pct: 0.020          # 2.0% max daily portfolio loss limit
+    max_drawdown_limit_pct: 0.10       # 10% max portfolio drawdown circuit breaker
+
+  correlation_control:
+    enabled: true
+    lookback_window: 30                # 30-bar rolling return window for correlation matrix
+    max_correlation_threshold: 0.70    # Block entry if correlation > 0.70 with any currently open position

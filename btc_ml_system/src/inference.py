@@ -39,6 +39,7 @@ class LiveInferencePipeline:
         equity = self.alpaca_executor.get_account_equity()
         sig: TradeSignal = self.signal_engine.generate_signal(
             df_1h=df_1h,
+            df_4h=df_4h,
             current_equity=equity,
             current_drawdown=current_drawdown,
             daily_pnl_pct=daily_pnl_pct

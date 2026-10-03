@@ -1,0 +1,57 @@
+# btc-ml-system V4.0 Default Configuration
+# Multi-Asset Quantitative Trading System
+
+system:
+  name: "BTC-ML-System Quantitative Platform V4.0"
+  version: "4.0.0"
+  seed: 42
+
+asset:
+  symbol: "BTCUSDT"                  # Primary symbol (e.g. BTCUSDT, ETHUSDT, AAPL, TSLA)
+  alpaca_symbol: "BTC/USD"
+  asset_type: "crypto"               # "crypto" or "stock"
+  data_provider: "binance"           # "binance" or "alpaca"
+  base_timeframe: "1h"
+  htf_timeframe: "4h"
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  history_years: 2
+
+strategy:
+  name: "trend_pullback"            # Active strategy identifier
+  params:
+    htf_ema_period: 50
+    htf_slope_lookback: 3
+    ltf_rsi_period: 14
+    ltf_rsi_oversold: 42
+    ltf_ema_fast: 20
+    ltf_ema_slow: 50
+    atr_period: 14
+    sl_atr_multiplier: 1.5
+    tp_atr_multiplier: 3.0
+
+volatility_regime:
+  window: 24
+  calm_quantile: 0.33
+  high_quantile: 0.67
+  allowed_regimes: ["CALM", "NORMAL"]
+
+risk_engine:
+  initial_capital: 10000.0
+  risk_per_trade_pct: 0.005         # 0.5% equity risk
+  max_daily_loss_pct: 0.010         # 1.0% max daily loss limit
+  max_drawdown_limit_pct: 0.10      # 10.0% max drawdown limit
+  cooldown_bars: 12                 # 12-bar entry cooldown
+
+position_sizer:
+  method: "fixed_risk"
+  risk_pct: 0.005
+  min_qty: 0.001
+
+execution:
+  provider: "alpaca"
+  paper_trading: true
+  commission_bps: 10
+  slippage_bps: 5

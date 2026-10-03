@@ -1,0 +1,60 @@
+system:
+  name: "BTC 4h Strategy Trader V4.3"
+  version: "4.3.0"
+  seed: 42
+
+asset:
+  symbol: "BTCUSDT"
+  alpaca_symbol: "BTC/USD"
+  asset_type: "crypto"
+  data_provider: "binance"
+  base_timeframe: "4h"               # Base timeframe is 4h
+  htf_timeframe: "1d"                # Higher timeframe is 1d
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  history_years: 2
+
+strategy:
+  name: "btc_htf_trend"
+  params:
+    htf_ema_period: 50
+    htf_slope_lookback: 3
+    donchian_period: 20
+    ltf_rsi_period: 14
+    ltf_rsi_oversold: 45
+    ltf_ema_fast: 20
+    ltf_ema_slow: 50
+    atr_period: 14
+    sl_atr_multiplier: 1.5
+    tp_atr_multiplier: 3.5
+
+exit_rules:
+  enable_trailing_stop: true
+  trailing_trigger_pct: 0.025        # 2.5% profit triggers trailing stop on 4h BTC
+  trailing_dist_pct: 0.020           # 2.0% trailing distance
+
+volatility_regime:
+  window: 24
+  calm_quantile: 0.33
+  high_quantile: 0.67
+  allowed_regimes: ["CALM", "NORMAL"]  # CALM & NORMAL allowed on 4h
+
+risk_engine:
+  initial_capital: 10000.0
+  risk_per_trade_pct: 0.005
+  max_daily_loss_pct: 0.010
+  max_drawdown_limit_pct: 0.10
+  cooldown_bars: 6                   # 6-bar cooldown (24 hours on 4h timeframe)
+
+position_sizer:
+  method: "fixed_risk"
+  risk_pct: 0.005
+  min_qty: 0.001
+
+execution:
+  provider: "alpaca"
+  paper_trading: true
+  commission_bps: 10
+  slippage_bps: 5
