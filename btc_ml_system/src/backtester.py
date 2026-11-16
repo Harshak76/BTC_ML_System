@@ -351,17 +351,20 @@ class Backtester:
             "min_risk_pct": min_risk
         }
 
-        # Save Trade Journal & Auto Analyzer Report
+        # Save Trade Journal & Equity Curve to DuckDB
         journal_df = self.journal.to_dataframe()
-        journal_path = self.journal.save()
+        db_path = self.journal.save(source="backtest")
+        equity_df = pd.DataFrame({"equity": equity_curve})
+        self.journal.save_equity_curve(equity_df)
+
         analysis_res = self.auto_analyzer.analyze(journal_df, metrics)
         report_text = self.auto_analyzer.generate_report(analysis_res, symbol=self.journal.symbol, strat_name=self.journal.strat_name)
         print("\n" + report_text)
 
-        metrics["journal_csv"] = journal_path
+        metrics["journal_db"] = db_path
+        metrics["journal_csv"] = db_path  # backward compatibility
         metrics["auto_analysis"] = analysis_res
 
-        equity_df = pd.DataFrame({"equity": equity_curve})
         return equity_df, trades, metrics
 
 

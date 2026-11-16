@@ -3,6 +3,10 @@ system:
   version: "5.0.0"
   seed: 42
 
+database:
+  path: "data/btc_ml_system.duckdb"
+  enabled: true
+
 portfolio:
   initial_capital: 100000.0   # $100,000 Total Portfolio Starting Capital
   weights:

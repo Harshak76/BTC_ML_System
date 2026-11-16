@@ -8,7 +8,7 @@ Includes:
 """
 
 import logging
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, List, Optional, Union
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -78,7 +78,8 @@ class TradeJournal:
     """
     Trade Journal Module for btc_ml_system.
     Records closed trades with rich contextual metadata, active filter states, session details, and PnL metrics.
-    Stores journal in Parquet and CSV queryable formats.
+    Persists journal records and equity curves directly into clean DuckDB analytical storage.
+    Includes on-demand CSV export functionality.
     """
 
     def __init__(self, config: Dict[str, Any]):
@@ -93,16 +94,16 @@ class TradeJournal:
     def record_trade(self, trade_data: Dict[str, Any]):
         """Records a closed trade entry into the journal buffer."""
         record = {
-            "trade_id": trade_data.get("trade_id", len(self.records) + 1),
+            "trade_id": str(trade_data.get("trade_id", len(self.records) + 1)),
             "symbol": self.symbol,
             "strategy": self.strat_name,
             "base_timeframe": self.base_tf,
             "htf_timeframe": self.htf_tf,
             "entry_idx": trade_data.get("entry_idx"),
-            "entry_time": pd.to_datetime(trade_data.get("entry_time")),
+            "entry_time": pd.to_datetime(trade_data.get("entry_time"), format="mixed"),
             "entry_price": float(trade_data.get("entry_price", 0.0)),
             "exit_idx": trade_data.get("exit_idx"),
-            "exit_time": pd.to_datetime(trade_data.get("exit_time")),
+            "exit_time": pd.to_datetime(trade_data.get("exit_time"), format="mixed"),
             "exit_price": float(trade_data.get("exit_price", 0.0)),
             "action": trade_data.get("action", "BUY"),
             "quantity": float(trade_data.get("quantity", 0.0)),
@@ -132,39 +133,47 @@ class TradeJournal:
             return pd.DataFrame()
         return pd.DataFrame(self.records)
 
-    def save(self, output_dir: str = "data/processed") -> str:
-        """Saves journal to Parquet and CSV files."""
+    def save(self, db_path: Optional[str] = None, source: str = "backtest") -> str:
+        """
+        Saves journal directly to DuckDB 'trades' table.
+        Replaces legacy CSV flooding with clean analytical storage.
+        """
         df = self.to_dataframe()
         if df.empty:
             logger.warning("Trade journal is empty, skipping save.")
             return ""
 
-        import os
-        os.makedirs(output_dir, exist_ok=True)
-        os.makedirs("reports", exist_ok=True)
+        from btc_ml_system.src.database import DatabaseManager
+        db = DatabaseManager(db_path)
+        db.insert_trades(df, source=source)
+        logger.info(f"Trade Journal safely persisted to DuckDB: {db.db_path} (table: trades)")
+        return str(db.db_path)
 
-        file_prefix = f"journal_{self.symbol.lower()}_{self.strat_name.lower()}"
-        csv_path = os.path.join(output_dir, f"{file_prefix}.csv")
-        parquet_path = os.path.join(output_dir, f"{file_prefix}.parquet")
-        reports_csv = os.path.join("reports", f"{file_prefix}.csv")
+    def save_equity_curve(self, equity_df: pd.DataFrame, db_path: Optional[str] = None) -> int:
+        """Saves backtest equity curve to DuckDB 'equity_curve' table."""
+        if equity_df.empty:
+            return 0
+        from btc_ml_system.src.database import DatabaseManager
+        db = DatabaseManager(db_path)
+        return db.insert_equity_curve(equity_df, symbol=self.symbol, strategy=self.strat_name)
 
-        df.to_csv(csv_path, index=False)
-        df.to_csv(reports_csv, index=False)
+    def export_csv(self, output_path: str) -> str:
+        """Exports buffered trade records to CSV on demand."""
+        df = self.to_dataframe()
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(output_path, index=False)
+        logger.info(f"Trade Journal exported on demand to CSV: {output_path}")
+        return output_path
 
-        try:
-            df.to_parquet(parquet_path, index=False)
-            logger.info(f"Trade Journal saved to Parquet: {parquet_path}")
-        except Exception as e:
-            logger.warning(f"Could not save Parquet (install pyarrow/fastparquet): {e}")
-
-        logger.info(f"Trade Journal saved to CSV: {csv_path}")
-        return csv_path
+    def clear(self):
+        """Clears the in-memory trade buffer."""
+        self.records.clear()
 
 
 class AutoAnalyzer:
     """
     Automated Quantitative Analysis Engine for btc_ml_system.
-    Processes trade journals post-backtest to generate rich actionable insights:
+    Processes trade journals post-backtest or directly from DuckDB to generate rich actionable insights:
     - Expectancy & Profit Factor by trade setup
     - MTF alignment breakdown
     - Volatility regime performance
@@ -173,11 +182,160 @@ class AutoAnalyzer:
     - Pattern discovery separating good trades from bad trades
     """
 
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
 
-    def analyze(self, journal_df: pd.DataFrame, backtest_metrics: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Runs quantitative analysis on the trade journal DataFrame."""
+    def analyze(
+        self,
+        journal_df: Optional[pd.DataFrame] = None,
+        backtest_metrics: Optional[Dict[str, Any]] = None,
+        symbol: Optional[str] = None,
+        strategy: Optional[str] = None,
+        db_path: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Runs quantitative analysis on the trade journal.
+        Accepts either an in-memory DataFrame or directly queries DuckDB.
+        """
+        if journal_df is None or journal_df.empty:
+            # Query directly from DuckDB
+            from btc_ml_system.src.database import DatabaseManager
+            db = DatabaseManager(db_path)
+            journal_df = db.get_trades(symbol=symbol, strategy=strategy)
+
+        if journal_df.empty:
+            return {"status": "NO_TRADES"}
+
+        df = journal_df.copy()
+        total_trades = len(df)
+        wins = df[df["pnl_usd"] > 0]
+        losses = df[df["pnl_usd"] <= 0]
+        win_rate = len(wins) / total_trades if total_trades > 0 else 0.0
+
+        gross_profit = wins["pnl_usd"].sum()
+        gross_loss = abs(losses["pnl_usd"].sum())
+        profit_factor = gross_profit / gross_loss if gross_loss > 0 else (gross_profit if gross_profit > 0 else 0.0)
+
+        avg_r_win = wins["r_multiple"].mean() if not wins.empty else 0.0
+        avg_r_loss = losses["r_multiple"].mean() if not losses.empty else 0.0
+        expectancy_r = df["r_multiple"].mean() if not df.empty else 0.0
+        expectancy_usd = df["pnl_usd"].mean() if not df.empty else 0.0
+
+        # 1. Volatility Regime Performance
+        vol_summary = {}
+        if "volatility_regime" in df.columns:
+            for reg, group in df.groupby("volatility_regime"):
+                g_wins = group[group["pnl_usd"] > 0]
+                g_loss = group[group["pnl_usd"] <= 0]
+                g_pf = g_wins["pnl_usd"].sum() / abs(g_loss["pnl_usd"].sum()) if abs(g_loss["pnl_usd"].sum()) > 0 else 0.0
+                vol_summary[str(reg)] = {
+                    "count": len(group),
+                    "win_rate": len(g_wins) / len(group) if len(group) > 0 else 0.0,
+                    "total_pnl": float(group["pnl_usd"].sum()),
+                    "profit_factor": float(g_pf),
+                    "avg_r": float(group["r_multiple"].mean())
+                }
+
+        # 2. MTF Trend Alignment Performance
+        mtf_summary = {}
+        if "htf_trend_valid" in df.columns:
+            for mtf_state, group in df.groupby("htf_trend_valid"):
+                g_wins = group[group["pnl_usd"] > 0]
+                g_loss = group[group["pnl_usd"] <= 0]
+                g_pf = g_wins["pnl_usd"].sum() / abs(g_loss["pnl_usd"].sum()) if abs(g_loss["pnl_usd"].sum()) > 0 else 0.0
+                label = "HTF Confirmed (Bullish)" if mtf_state else "HTF Unconfirmed"
+                mtf_summary[label] = {
+                    "count": len(group),
+                    "win_rate": len(g_wins) / len(group) if len(group) > 0 else 0.0,
+                    "total_pnl": float(group["pnl_usd"].sum()),
+                    "profit_factor": float(g_pf),
+                    "avg_r": float(group["r_multiple"].mean())
+                }
+
+        # 3. Session & Time Analysis
+        session_summary = {}
+        if "session" in df.columns:
+            for sess, group in df.groupby("session"):
+                g_wins = group[group["pnl_usd"] > 0]
+                g_loss = group[group["pnl_usd"] <= 0]
+                g_pf = g_wins["pnl_usd"].sum() / abs(g_loss["pnl_usd"].sum()) if abs(g_loss["pnl_usd"].sum()) > 0 else 0.0
+                session_summary[str(sess)] = {
+                    "count": len(group),
+                    "win_rate": len(g_wins) / len(group) if len(group) > 0 else 0.0,
+                    "total_pnl": float(group["pnl_usd"].sum()),
+                    "profit_factor": float(g_pf)
+                }
+
+        day_summary = {}
+        if "day_of_week" in df.columns:
+            for day, group in df.groupby("day_of_week"):
+                day_summary[str(day)] = {
+                    "count": len(group),
+                    "win_rate": (group["pnl_usd"] > 0).mean(),
+                    "total_pnl": float(group["pnl_usd"].sum())
+                }
+
+        # 4. Exit Reason Breakdown
+        exit_summary = {}
+        if "exit_reason" in df.columns:
+            for ex, group in df.groupby("exit_reason"):
+                exit_summary[str(ex)] = {
+                    "count": len(group),
+                    "win_rate": (group["pnl_usd"] > 0).mean(),
+                    "total_pnl": float(group["pnl_usd"].sum()),
+                    "avg_pnl": float(group["pnl_usd"].mean())
+                }
+
+        # 5. Key Pattern Separators (Winners vs Losers)
+        separators = {}
+        num_cols = ["atr_at_entry", "rsi_at_entry", "duration_bars", "risk_pct_used"]
+        for col in num_cols:
+            if col in df.columns:
+                w_val = wins[col].mean() if not wins.empty else 0.0
+                l_val = losses[col].mean() if not losses.empty else 0.0
+                separators[col] = {"winner_avg": float(w_val), "loser_avg": float(l_val), "diff": float(w_val - l_val)}
+
+        return {
+            "total_trades": total_trades,
+            "win_rate": win_rate,
+            "profit_factor": profit_factor,
+            "gross_profit": float(gross_profit),
+            "gross_loss": float(gross_loss),
+            "expectancy_usd": float(expectancy_usd),
+            "expectancy_r": float(expectancy_r),
+            "winner_avg_r": float(avg_r_win),
+            "loser_avg_r": float(avg_r_loss),
+            "volatility_regime_breakdown": vol_summary,
+            "mtf_breakdown": mtf_summary,
+            "session_breakdown": session_summary,
+            "day_breakdown": day_summary,
+            "exit_breakdown": exit_summary,
+            "pattern_separators": separators
+        }
+
+    def analyze_from_db(
+        self,
+        symbol: Optional[str] = None,
+        strategy: Optional[str] = None,
+        source: Optional[str] = None,
+        db_path: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Analyzes trades queried directly from DuckDB."""
+        from btc_ml_system.src.database import DatabaseManager
+        db = DatabaseManager(db_path)
+        df = db.get_trades(symbol=symbol, strategy=strategy, source=source)
+        return self.analyze(journal_df=df)
+
+    def generate_db_report(
+        self,
+        symbol: Optional[str] = None,
+        strategy: Optional[str] = None,
+        source: Optional[str] = None,
+        db_path: Optional[str] = None
+    ) -> str:
+        """Runs quantitative analysis directly on DuckDB and generates formatted text report."""
+        analysis = self.analyze_from_db(symbol=symbol, strategy=strategy, source=source, db_path=db_path)
+        return self.generate_report(analysis, symbol=symbol or "ALL_ASSETS", strat_name=strategy or "ALL_STRATEGIES")
         if journal_df.empty:
             return {"status": "NO_TRADES"}
 

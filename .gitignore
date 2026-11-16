@@ -17,6 +17,8 @@ btc_ml_system/data/raw/*.csv
 btc_ml_system/data/processed/*.csv
 data/raw/*.csv
 data/processed/*.csv
+*.duckdb.wal
+exports/
 crypto_ml_trader/models/*.joblib
 btc_ml_system/models/*.joblib
 models/*.joblib

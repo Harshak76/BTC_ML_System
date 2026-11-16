@@ -25,8 +25,8 @@ class AlpacaExecutor:
         self.api_key_env = self.alp_cfg.get("api_key_env", "ALPACA_API_KEY")
         self.secret_key_env = self.alp_cfg.get("secret_key_env", "ALPACA_SECRET_KEY")
         
-        self.api_key = os.environ.get(self.api_key_env, self.alp_cfg.get("api_key", ""))
-        self.secret_key = os.environ.get(self.secret_key_env, self.alp_cfg.get("secret_key", ""))
+        self.api_key = os.environ.get(self.api_key_env) or self.alp_cfg.get("api_key", "PKOJMWUCJSH433JAYP2L74MLNN")
+        self.secret_key = os.environ.get(self.secret_key_env) or self.alp_cfg.get("secret_key", "ACKUpw6mrJHSTFWXAo7szZfqShR6TTfnvYQJ21K2GW8k")
 
         self.dry_run = bool(self.alp_cfg.get("dry_run", False))
         self.symbol_map = config.get("alpaca_symbol_map", {
@@ -156,6 +156,36 @@ class AlpacaExecutor:
 
         return results
 
+    def close_position(self, internal_symbol: str, qty: Optional[float] = None) -> Dict[str, Any]:
+        """
+        Closes an open position on Alpaca (e.g. Stop-Loss or Take-Profit hit).
+        """
+        alpaca_sym = self.map_symbol(internal_symbol)
+        clean_sym = alpaca_sym.replace("/", "")
+        logger.info(f"Closing position for {internal_symbol} ({clean_sym}) on Alpaca...")
+
+        if self.dry_run or not self.api_key or not self.secret_key:
+            logger.info(f"[DRY-RUN CLOSE POSITION] Mock closed position for {internal_symbol}.")
+            return {"status": "dry_run_success", "symbol": internal_symbol}
+
+        url = f"{self.endpoint}/positions/{clean_sym}"
+        params = {}
+        if qty is not None and qty > 0:
+            params["qty"] = str(qty)
+
+        try:
+            resp = requests.delete(url, headers=self._get_headers(), params=params, timeout=10)
+            if resp.status_code in [200, 204]:
+                data = resp.json() if resp.text else {"status": "closed"}
+                logger.info(f"[ALPACA POSITION CLOSED] Successfully closed position for {internal_symbol} on Alpaca: {data}")
+                return data
+            else:
+                logger.warning(f"Close position returned {resp.status_code}: {resp.text}")
+                return {"status": "failed", "code": resp.status_code, "error": resp.text}
+        except Exception as e:
+            logger.error(f"Failed to close Alpaca position for {internal_symbol}: {e}")
+            return {"status": "failed", "error": str(e)}
+
     def map_symbol(self, internal_symbol: str) -> str:
         """Maps internal system symbol (e.g. BTCUSDT) to Alpaca symbol (e.g. BTC/USD)."""
         return self.symbol_map.get(internal_symbol, internal_symbol)
@@ -208,6 +238,11 @@ class AlpacaExecutor:
             }
 
         # 4. Format Quantity cleanly for Alpaca
+        # Alpaca crypto requires minimal order amount of $10
+        if ("/" in alpaca_symbol or "USD" in alpaca_symbol) and estimated_price > 0:
+            if (qty * estimated_price) < 10.0:
+                qty = 10.5 / estimated_price
+
         # Alpaca stocks require integer or float depending on fractional support.
         # Crypto permits fractional decimal quantities (e.g. 0.0154 BTC).
         if "/" in alpaca_symbol or "USD" in alpaca_symbol:

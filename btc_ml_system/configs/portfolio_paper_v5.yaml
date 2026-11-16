@@ -2,10 +2,27 @@ system:
   name: "Alpaca Paper Trading Portfolio Mode V5.0"
   version: "5.0.0"
   seed: 42
+  trading_mode: "loose_stage1"          # Active Mode: "strict" (locked baseline) | "loose_stage1" (temporary stage 1 loosening)
+
+modes:
+  strict:
+    description: "Original locked baseline: BTCUSDT 4H (NORMAL regime only), max_correlation 0.70"
+    btc_regimes: ["NORMAL"]
+    max_correlation_threshold: 0.70
+  loose_stage1:
+    description: "Stage 1 temporary loosening: BTCUSDT 4H (NORMAL + CALM regimes), max_correlation 0.80"
+    btc_regimes: ["NORMAL", "CALM"]
+    max_correlation_threshold: 0.80
+
+database:
+  path: "data/btc_ml_system.duckdb"
+  enabled: true
 
 alpaca:
   endpoint: "https://paper-api.alpaca.markets/v2"
-  api_key: "PK3UB43HIIYEFQ3GVKUPYIK72N"
+  data_endpoint: "https://data.alpaca.markets"
+  api_key: "PKOJMWUCJSH433JAYP2L74MLNN"
+  secret_key: "ACKUpw6mrJHSTFWXAo7szZfqShR6TTfnvYQJ21K2GW8k"
   api_key_env: "ALPACA_API_KEY"
   secret_key_env: "ALPACA_SECRET_KEY"
   dry_run: false                      # Set true for dry-run mode, false for Alpaca Paper API execution
@@ -28,7 +45,8 @@ portfolio:
   correlation_control:
     enabled: true
     lookback_window: 30                # 30-bar rolling return window for correlation matrix
-    max_correlation_threshold: 0.70    # Block entry if correlation > 0.70 with any currently open position
+    max_correlation_threshold: 0.70    # Strict threshold (used in 'strict' mode)
+    loose_correlation_threshold: 0.80  # Relaxed threshold (used in 'loose_stage1' mode)
 
 symbols:
   equity_symbols: ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN"]

@@ -61,6 +61,8 @@ def main():
     parser.add_argument("--flatten", action="store_true", help="EMERGENCY KILL SWITCH: Flatten all open positions and cancel orders immediately")
     parser.add_argument("--summary", action="store_true", help="Generate and print daily portfolio summary report, then exit")
     parser.add_argument("--poll-interval", type=int, default=None, help="Override poll loop interval in seconds")
+    parser.add_argument("--mode", type=str, choices=["strict", "loose_stage1"], default=None,
+                        help="Active trading profile: 'strict' (locked baseline) or 'loose_stage1' (temporary Stage 1 loosening)")
 
     args = parser.parse_args()
 
@@ -76,8 +78,8 @@ def main():
     poll_interval = args.poll_interval or main_cfg.get("alpaca", {}).get("poll_interval_seconds", 60)
     dry_run_override = True if args.dry_run else None
 
-    # Instantiate Paper Trader Engine
-    paper_trader = PortfolioPaperTrader(main_cfg, dry_run_override=dry_run_override)
+    # Instantiate Paper Trader Engine with Mode Override Support
+    paper_trader = PortfolioPaperTrader(main_cfg, dry_run_override=dry_run_override, mode_override=args.mode)
 
     # 1. Kill Switch Mode
     if args.flatten:
@@ -92,17 +94,31 @@ def main():
         sys.exit(0)
 
     # 3. Startup Verification Banner
-    print("\n  LOCKED PORTFOLIO STRATEGY CONFIGURATION:")
+    mode_name = paper_trader.trading_mode.upper()
+    print("\n  ACTIVE PORTFOLIO TRADING PROFILE:")
+    if paper_trader.trading_mode == "loose_stage1":
+        print(f"   • Profile Mode                                     : [ {mode_name} (TEMPORARY STAGE 1 LOOSENING) ]")
+        print(f"   • BTCUSDT 4H Volatility Regimes                    : ['NORMAL', 'CALM'] (Stage 1 Loosened)")
+        print(f"   • Cross-Asset Correlation Threshold                : 0.80 (Stage 1 Relaxed from 0.70)")
+    else:
+        print(f"   • Profile Mode                                     : [ {mode_name} (ORIGINAL LOCKED BASELINE) ]")
+        print(f"   • BTCUSDT 4H Volatility Regimes                    : ['NORMAL'] (Strict Baseline)")
+        print(f"   • Cross-Asset Correlation Threshold                : 0.70 (Strict Baseline)")
+
     print("   • Total Portfolio Capital Weight Allocations:")
     print("     - Equity V4.3 Basket (AAPL, MSFT, NVDA, TSLA, AMZN) : 50% Total (10% each)")
     print("     - BTCUSDT 4H Strategy                              : 25%")
     print("     - ETHUSDT 1H Strategy                              : 25%")
-    print("   • Strategy Parameter Baseline Locks:")
-    print("     - Equity V4.3                                      : Frozen")
-    print("     - BTC 4H                                           : MTF Medium + NORMAL Volatility Regime Only")
-    print("     - ETH 1H                                           : Clean Version (No MTF, No Session Filter)")
-    print("     - Dynamic Risk Sizing                              : DISABLED")
-    print("     - Early Loss Cut & Profit Runner                   : DISABLED")
+    print("   • Locked Risk Controls & Strategy Invariants:")
+    print("     - Equity V4.3 Basket                               : FROZEN")
+    print("     - BTC 4H Multi-Timeframe Confirmation              : ENABLED (Medium) [LOCKED]")
+    print("     - ETH 1H Clean Version                             : LOCKED (No MTF, No Session Filter, CALM)")
+    print("     - Risk per Trade                                   : 0.5% Allocated Capital [LOCKED]")
+    print("     - Max Open Portfolio Risk                          : 3.0% [LOCKED]")
+    print("     - Max Daily Loss Limit                             : 2.0% [LOCKED]")
+    print("     - Max Portfolio Drawdown Circuit Breaker           : 10.0% [LOCKED]")
+    print("     - Dynamic Risk Sizing                              : DISABLED [LOCKED]")
+    print("     - Early Loss Cut & Profit Runner                   : DISABLED [LOCKED]")
     print("   • Alpaca Connection:")
     print(f"     - Endpoint                                         : {paper_trader.alpaca.endpoint}")
     print(f"     - Mode                                             : {'DRY-RUN (Mock Orders)' if paper_trader.alpaca.dry_run else 'ALPACA PAPER TRADING (REST API)'}")

@@ -24,6 +24,7 @@ Imagine an automated, algorithmic fund manager running on your machine 24/7. Ins
 | :--- | :--- | :--- |
 | **Core Logic** | `Python 3.10+` | Primary programming language for pipeline orchestration |
 | **Data Processing** | `Pandas`, `NumPy` | High-performance vector calculations, candle parsing, rolling stats |
+| **Analytical Database** | `DuckDB` | Embedded OLAP storage for trade journals, paper logs, equity curves & snapshots |
 | **Machine Learning** | `Scikit-learn` | Volatility regime classification & meta-labeling classifiers |
 | **Broker REST API** | `Alpaca Markets API v2` | Live/paper market account queries, order submission & position tracking |
 | **Data Providers** | `Binance Public API`, `Alpaca Data API` | Real-time and historical kline/candle data ingestion |
@@ -74,7 +75,7 @@ flowchart TD
     RiskEngine -->|Daily Loss > 2% or DD > 10%| Block
     RiskEngine -->|Correlation > 0.70| Block
     RiskEngine -->|Risk Checks Passed| OrderExec["6. Execute Paper Order via Alpaca REST API"]
-    OrderExec --> Journal["7. Log Trade to Persistent CSV Journal"]
+    OrderExec --> Journal["7. Log Trade & Equity to Clean DuckDB Database"]
 ```
 
 ---
@@ -109,8 +110,8 @@ Set your Alpaca Paper Trading API keys in your terminal environment:
 
 #### Windows PowerShell:
 ```powershell
-$env:ALPACA_API_KEY="YOUR_ALPACA_API_KEY_HERE"
-$env:ALPACA_SECRET_KEY="YOUR_ALPACA_SECRET_KEY_HERE"
+$env:ALPACA_API_KEY="PKOJMWUCJSH433JAYP2L74MLNN"
+$env:ALPACA_SECRET_KEY="ACKUpw6mrJHSTFWXAo7szZfqShR6TTfnvYQJ21K2GW8k"
 ```
 
 #### Linux / macOS:
@@ -157,6 +158,39 @@ python btc_ml_system/run_paper_portfolio_v5.py --summary
 #### D. Emergency Kill Switch (Flatten All Positions & Cancel Orders)
 ```bash
 python btc_ml_system/run_paper_portfolio_v5.py --flatten
+```
+
+---
+
+### 5. DuckDB Database Management & CSV Export
+
+All trades, backtests, paper trading orders, equity curves, positions, and portfolio snapshots are centrally stored in `data/btc_ml_system.duckdb`.
+
+#### Inspect Database Schema & Row Counts:
+```bash
+python -m btc_ml_system.src.database --summary
+```
+
+#### Export Any DuckDB Table to CSV on Demand:
+```bash
+# Export trades journal to CSV
+python -m btc_ml_system.src.database --export trades exports/trades_backup.csv
+
+# Export equity curve to CSV
+python -m btc_ml_system.src.database --export equity_curve exports/equity_curve.csv
+
+# Export live paper positions
+python -m btc_ml_system.src.database --export positions exports/positions.csv
+
+# Export daily portfolio snapshots
+python -m btc_ml_system.src.database --export portfolio_snapshots exports/snapshots.csv
+```
+
+#### Run AutoAnalyzer Directly Against DuckDB:
+```python
+from btc_ml_system.src.monitoring import AutoAnalyzer
+analyzer = AutoAnalyzer()
+print(analyzer.generate_db_report(symbol="BTCUSDT"))
 ```
 
 ---
