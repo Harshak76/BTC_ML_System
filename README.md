@@ -110,8 +110,8 @@ Set your Alpaca Paper Trading API keys in your terminal environment:
 
 #### Windows PowerShell:
 ```powershell
-$env:ALPACA_API_KEY="PKOJMWUCJSH433JAYP2L74MLNN"
-$env:ALPACA_SECRET_KEY="ACKUpw6mrJHSTFWXAo7szZfqShR6TTfnvYQJ21K2GW8k"
+$env:ALPACA_API_KEY=""
+$env:ALPACA_SECRET_KEY=""
 ```
 
 #### Linux / macOS:
