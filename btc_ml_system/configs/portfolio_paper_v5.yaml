@@ -21,8 +21,8 @@ database:
 alpaca:
   endpoint: "https://paper-api.alpaca.markets/v2"
   data_endpoint: "https://data.alpaca.markets"
-  api_key: "PKOJMWUCJSH433JAYP2L74MLNN"
-  secret_key: "ACKUpw6mrJHSTFWXAo7szZfqShR6TTfnvYQJ21K2GW8k"
+  api_key: ""                         # Loaded via ALPACA_API_KEY environment variable or .env
+  secret_key: ""                      # Loaded via ALPACA_SECRET_KEY environment variable or .env
   api_key_env: "ALPACA_API_KEY"
   secret_key_env: "ALPACA_SECRET_KEY"
   dry_run: false                      # Set true for dry-run mode, false for Alpaca Paper API execution
@@ -30,6 +30,7 @@ alpaca:
 
 portfolio:
   initial_capital: 10000.0            # $10,000 Starting Capital (or read live from Alpaca Account)
+  risk_denominator: "component_allocation" # "component_allocation" (default preserved: 0.5% of asset allocation) | "portfolio_equity" (0.5% of total equity)
   weights:
     equity_basket: 0.50               # 50% Equities total (10% each: AAPL, MSFT, NVDA, TSLA, AMZN)
     BTCUSDT: 0.25                     # 25% BTC 4H Strategy

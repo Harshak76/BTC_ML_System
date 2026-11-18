@@ -343,7 +343,7 @@ class DatabaseManager:
 
         df["symbol"] = symbol
         df["strategy"] = strategy
-        df["run_id"] = run_id or f"run_{datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+        df["run_id"] = run_id or f"run_{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         df["created_at"] = pd.Timestamp.utcnow()
 
         with self.get_connection() as con:
@@ -393,7 +393,7 @@ class DatabaseManager:
                 float(pos.get("quantity", 0.0)),
                 float(pos.get("risk_usd", 0.0)),
                 str(pos.get("regime", "NORMAL")),
-                pd.to_datetime(pos.get("opened_at", datetime.datetime.utcnow()))
+                pd.to_datetime(pos.get("opened_at", datetime.datetime.now(datetime.timezone.utc)))
             ])
 
     def remove_position(self, symbol: str):
@@ -427,7 +427,7 @@ class DatabaseManager:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """, [
                 str(sig.get("signal_id", "")),
-                pd.to_datetime(sig.get("timestamp", datetime.datetime.utcnow())),
+                pd.to_datetime(sig.get("timestamp", datetime.datetime.now(datetime.timezone.utc))),
                 str(sig.get("symbol", "")),
                 str(sig.get("action", "HOLD")),
                 float(sig.get("close_price", sig.get("entry_price", 0.0))),
@@ -460,7 +460,7 @@ class DatabaseManager:
                     current_drawdown_pct, open_positions_count, positions_json
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """, [
-                pd.to_datetime(snap.get("timestamp", datetime.datetime.utcnow())),
+                pd.to_datetime(snap.get("timestamp", datetime.datetime.now(datetime.timezone.utc))),
                 float(snap.get("account_equity", 0.0)),
                 float(snap.get("starting_daily_equity", 0.0)),
                 float(snap.get("cash_balance", 0.0)),

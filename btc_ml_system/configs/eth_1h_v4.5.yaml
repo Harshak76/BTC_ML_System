@@ -37,7 +37,7 @@ multi_timeframe_filter:
   ema_slow: 200
 
 session_filter:
-  enabled: true
+  enabled: false
   start_hour: 14
   end_hour: 22
 

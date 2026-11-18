@@ -51,6 +51,12 @@ class PortfolioManager:
         self.max_daily_loss_pct = float(self.risk_cfg.get("max_daily_loss_pct", 0.02))
         self.max_drawdown_limit_pct = float(self.risk_cfg.get("max_drawdown_limit_pct", 0.10))
         
+        # Execution Timing Model (BKT-001): "next_bar_open" (default, institutional) | "same_bar_close" (legacy)
+        self.execution_timing = self.port_cfg.get("execution_timing", "next_bar_open").lower().strip()
+
+        # Risk Denominator Model (RSK-001): "component_allocation" (default) | "portfolio_equity"
+        self.risk_denominator = self.port_cfg.get("risk_denominator", "component_allocation").lower().strip()
+
         # Correlation Control
         self.corr_cfg = self.port_cfg.get("correlation_control", {})
         self.corr_enabled = bool(self.corr_cfg.get("enabled", True))
@@ -76,32 +82,40 @@ class PortfolioManager:
         # 1. Load Data & Evaluate Signals per Asset
         asset_data = {}
         for sym, cfg in asset_configs.items():
-            years = cfg.get("data", {}).get("history_years", 2)
-            days_back = years * 365
-            provider = DataProvider(cfg)
-            df_ltf = provider.fetch_data(symbol=sym, interval=cfg['asset']['base_timeframe'], days_back=days_back)
-            df_htf = provider.fetch_data(symbol=sym, interval=cfg['asset']['htf_timeframe'], days_back=days_back * 2)
+            if "prepared_df" in cfg:
+                df_strat = cfg["prepared_df"].copy()
+                sl_mult = float(cfg.get("sl_atr_mult", 1.5))
+                tp_mult = float(cfg.get("tp_atr_mult", 3.0))
+            else:
+                years = cfg.get("data", {}).get("history_years", 2)
+                days_back = years * 365
+                provider = DataProvider(cfg)
+                df_ltf = provider.fetch_data(symbol=sym, interval=cfg['asset']['base_timeframe'], days_back=days_back)
+                df_htf = provider.fetch_data(symbol=sym, interval=cfg['asset']['htf_timeframe'], days_back=days_back * 2)
 
-            vol_classifier = VolatilityRegimeClassifier(cfg)
-            df_reg = vol_classifier.predict_regimes(df_ltf)
+                vol_classifier = VolatilityRegimeClassifier(cfg)
+                df_reg = vol_classifier.predict_regimes(df_ltf)
 
-            session_filter = SessionFilter(cfg)
-            df_sess = session_filter.apply_filter(df_reg)
+                session_filter = SessionFilter(cfg)
+                df_sess = session_filter.apply_filter(df_reg)
 
-            strategy_engine = StrategyFactory.get_strategy(cfg)
-            df_strat = strategy_engine.evaluate_signals(df_sess, df_htf)
+                strategy_engine = StrategyFactory.get_strategy(cfg)
+                df_strat = strategy_engine.evaluate_signals(df_sess, df_htf)
 
-            signal_engine = SignalEngine(cfg)
-            df_strat["atr"] = signal_engine.compute_atr(df_strat)
+                signal_engine = SignalEngine(cfg)
+                df_strat["atr"] = signal_engine.compute_atr(df_strat)
+                sl_mult = signal_engine.sl_atr_mult
+                tp_mult = signal_engine.tp_atr_mult
 
             # Precalculate returns for correlation checks
-            df_strat["returns"] = df_strat["close"].pct_change().fillna(0.0)
+            if "returns" not in df_strat.columns:
+                df_strat["returns"] = df_strat["close"].pct_change().fillna(0.0)
 
             asset_data[sym] = {
                 "config": cfg,
                 "df": df_strat.sort_values("open_time").reset_index(drop=True),
-                "sl_atr_mult": signal_engine.sl_atr_mult,
-                "tp_atr_mult": signal_engine.tp_atr_mult,
+                "sl_atr_mult": sl_mult,
+                "tp_atr_mult": tp_mult,
                 "enable_trailing_stop": cfg.get("exit_rules", {}).get("enable_trailing_stop", False),
                 "trailing_trigger_pct": cfg.get("exit_rules", {}).get("trailing_trigger_pct", 0.02),
                 "trailing_dist_pct": cfg.get("exit_rules", {}).get("trailing_dist_pct", 0.015),
@@ -140,6 +154,7 @@ class PortfolioManager:
         peak_equity = portfolio_capital
 
         open_positions = {}  # sym -> position_dict
+        pending_entries = {} # sym -> pending order setup dict for next_bar_open execution (BKT-001)
         completed_trades = []  # list of trade dicts
         equity_curve = []  # list of {timestamp, equity, drawdown, cash, open_count}
 
@@ -165,6 +180,49 @@ class PortfolioManager:
             if current_day != t_date:
                 current_day = t_date
                 day_start_equity = portfolio_capital
+
+            # Process Pending Next-Bar Open Entries from previous bar (BKT-001)
+            for p_sym in list(pending_entries.keys()):
+                df_p = indexed_dfs[p_sym]
+                if t in df_p.index and p_sym not in open_positions:
+                    p_setup = pending_entries.pop(p_sym)
+                    p_row = df_p.loc[t]
+                    p_open = float(p_row["open"])
+                    slip_bps = asset_configs[p_sym].get("execution", {}).get("slippage_bps", 5)
+                    fill_price = p_open * (1.0 + (slip_bps / 10000.0))
+
+                    p_stop_dist = p_setup["raw_stop_dist"]
+                    p_tp_dist = p_setup["raw_tp_dist"]
+                    p_sl_price = fill_price - p_stop_dist
+                    p_tp_price = fill_price + p_tp_dist
+                    p_qty = p_setup["dollar_risk"] / p_stop_dist if p_stop_dist > 0 else 0.0
+                    p_pos_val = p_qty * fill_price
+
+                    open_positions[p_sym] = {
+                        "symbol": p_sym,
+                        "entry_time": t,
+                        "entry_price": fill_price,
+                        "quantity": p_qty,
+                        "position_value": p_pos_val,
+                        "dollar_risk": p_setup["dollar_risk"],
+                        "initial_sl_price": p_sl_price,
+                        "sl_price": p_sl_price,
+                        "tp_price": p_tp_price,
+                        "bars_held": 0,
+                        "highest_price": fill_price,
+                        "trailing_active": False,
+                        "enable_trailing_stop": p_setup["enable_trailing_stop"],
+                        "trailing_trigger_pct": p_setup["trailing_trigger_pct"],
+                        "trailing_dist_pct": p_setup["trailing_dist_pct"],
+                        "enable_early_loss_cut": p_setup["enable_early_loss_cut"],
+                        "early_loss_cut_bars": p_setup["early_loss_cut_bars"],
+                        "early_loss_cut_max_pnl_r": p_setup["early_loss_cut_max_pnl_r"],
+                        "enable_profit_runner": p_setup["enable_profit_runner"],
+                        "profit_runner_trigger_r": p_setup["profit_runner_trigger_r"],
+                        "profit_runner_trail_dist_pct": p_setup["profit_runner_trail_dist_pct"],
+                        "volatility_regime": p_setup["volatility_regime"]
+                    }
+                    cash -= p_pos_val
 
             # A. Mark to Market Open Positions & Check Exits
             closed_in_this_step = []
@@ -217,7 +275,8 @@ class PortfolioManager:
                             exit_price = curr_close
                             reason = "EARLY_LOSS_CUT"
                         elif hit_sl:
-                            exit_price = pos["sl_price"]
+                            # BKT-002: Opening gap slippage handling (exit at open if gapped below stop)
+                            exit_price = curr_open if curr_open < pos["sl_price"] else pos["sl_price"]
                             reason = "PROFIT_RUNNER_HIT" if (pos.get("enable_profit_runner", False) and pos["trailing_active"]) else ("TRAILING_SL_HIT" if pos["trailing_active"] else "SL_HIT")
                         else:
                             exit_price = pos["tp_price"]
@@ -317,10 +376,13 @@ class PortfolioManager:
                 sl_price = entry_price - (sl_m * atr_val)
                 tp_price = entry_price + (tp_m * atr_val)
 
-                # Sub-capital for this asset based on allocation weight
+                # Sub-capital for this asset based on allocation weight (RSK-001)
                 allocated_sub_capital = self.initial_capital * asset_allocations[sym]
                 risk_pct = float(asset_configs[sym].get("position_sizer", {}).get("risk_pct", 0.005))
-                dollar_risk = allocated_sub_capital * risk_pct
+                if self.risk_denominator == "portfolio_equity":
+                    dollar_risk = self.initial_capital * risk_pct
+                else:
+                    dollar_risk = allocated_sub_capital * risk_pct
 
                 stop_dist = abs(entry_price - sl_price)
                 if stop_dist <= 0:
@@ -349,37 +411,56 @@ class PortfolioManager:
                     if is_correlated:
                         continue
 
-                # Execute Trade Entry
+                # Execute Trade Entry or Queue for Next Bar Open (BKT-001)
                 slip_bps = asset_configs[sym].get("execution", {}).get("slippage_bps", 5)
                 entry_price_adj = entry_price * (1.0 + (slip_bps / 10000.0))
 
                 exit_rules_cfg = asset_configs[sym].get("exit_rules", {})
 
-                open_positions[sym] = {
-                    "symbol": sym,
-                    "entry_time": t,
-                    "entry_price": entry_price_adj,
-                    "quantity": qty,
-                    "position_value": pos_value,
-                    "dollar_risk": dollar_risk,
-                    "initial_sl_price": sl_price,
-                    "sl_price": sl_price,
-                    "tp_price": tp_price,
-                    "bars_held": 0,
-                    "highest_price": entry_price_adj,
-                    "trailing_active": False,
-                    "enable_trailing_stop": d["enable_trailing_stop"],
-                    "trailing_trigger_pct": tr_trig,
-                    "trailing_dist_pct": tr_dist,
-                    "enable_early_loss_cut": bool(exit_rules_cfg.get("enable_early_loss_cut", False)),
-                    "early_loss_cut_bars": int(exit_rules_cfg.get("early_loss_cut_bars", 5)),
-                    "early_loss_cut_max_pnl_r": float(exit_rules_cfg.get("early_loss_cut_max_pnl_r", 0.0)),
-                    "enable_profit_runner": bool(exit_rules_cfg.get("enable_profit_runner", False)),
-                    "profit_runner_trigger_r": float(exit_rules_cfg.get("profit_runner_trigger_r", 2.0)),
-                    "profit_runner_trail_dist_pct": float(exit_rules_cfg.get("profit_runner_trail_dist_pct", 0.015)),
-                    "volatility_regime": str(row.get("volatility_regime", "NORMAL"))
-                }
-                cash -= pos_value
+                if self.execution_timing == "next_bar_open":
+                    # BKT-001: Queue order for execution on next bar open
+                    pending_entries[sym] = {
+                        "raw_stop_dist": stop_dist,
+                        "raw_tp_dist": abs(tp_price - entry_price),
+                        "dollar_risk": dollar_risk,
+                        "enable_trailing_stop": d["enable_trailing_stop"],
+                        "trailing_trigger_pct": tr_trig,
+                        "trailing_dist_pct": tr_dist,
+                        "enable_early_loss_cut": bool(exit_rules_cfg.get("enable_early_loss_cut", False)),
+                        "early_loss_cut_bars": int(exit_rules_cfg.get("early_loss_cut_bars", 5)),
+                        "early_loss_cut_max_pnl_r": float(exit_rules_cfg.get("early_loss_cut_max_pnl_r", 0.0)),
+                        "enable_profit_runner": bool(exit_rules_cfg.get("enable_profit_runner", False)),
+                        "profit_runner_trigger_r": float(exit_rules_cfg.get("profit_runner_trigger_r", 2.0)),
+                        "profit_runner_trail_dist_pct": float(exit_rules_cfg.get("profit_runner_trail_dist_pct", 0.015)),
+                        "volatility_regime": str(row.get("volatility_regime", "NORMAL"))
+                    }
+                else:
+                    # Same-bar close legacy execution
+                    open_positions[sym] = {
+                        "symbol": sym,
+                        "entry_time": t,
+                        "entry_price": entry_price_adj,
+                        "quantity": qty,
+                        "position_value": pos_value,
+                        "dollar_risk": dollar_risk,
+                        "initial_sl_price": sl_price,
+                        "sl_price": sl_price,
+                        "tp_price": tp_price,
+                        "bars_held": 0,
+                        "highest_price": entry_price_adj,
+                        "trailing_active": False,
+                        "enable_trailing_stop": d["enable_trailing_stop"],
+                        "trailing_trigger_pct": tr_trig,
+                        "trailing_dist_pct": tr_dist,
+                        "enable_early_loss_cut": bool(exit_rules_cfg.get("enable_early_loss_cut", False)),
+                        "early_loss_cut_bars": int(exit_rules_cfg.get("early_loss_cut_bars", 5)),
+                        "early_loss_cut_max_pnl_r": float(exit_rules_cfg.get("early_loss_cut_max_pnl_r", 0.0)),
+                        "enable_profit_runner": bool(exit_rules_cfg.get("enable_profit_runner", False)),
+                        "profit_runner_trigger_r": float(exit_rules_cfg.get("profit_runner_trigger_r", 2.0)),
+                        "profit_runner_trail_dist_pct": float(exit_rules_cfg.get("profit_runner_trail_dist_pct", 0.015)),
+                        "volatility_regime": str(row.get("volatility_regime", "NORMAL"))
+                    }
+                    cash -= pos_value
 
         # 6. Aggregate Performance Metrics
         portfolio_metrics = self._calculate_performance_metrics(

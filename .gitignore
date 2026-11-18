@@ -1,3 +1,8 @@
+# Secrets & Environment variables
+.env
+.env.*
+!.env.example
+
 # Python
 __pycache__/
 *.py[cod]
@@ -17,7 +22,10 @@ btc_ml_system/data/raw/*.csv
 btc_ml_system/data/processed/*.csv
 data/raw/*.csv
 data/processed/*.csv
+*.duckdb
 *.duckdb.wal
+data/*.duckdb
+data/*.duckdb.bak*
 exports/
 crypto_ml_trader/models/*.joblib
 btc_ml_system/models/*.joblib

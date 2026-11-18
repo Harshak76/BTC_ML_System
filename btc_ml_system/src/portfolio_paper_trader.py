@@ -69,6 +69,12 @@ class PortfolioPaperTrader:
         self.max_daily_loss_pct = float(self.risk_cfg.get("max_daily_loss_pct", 0.020))
         self.max_drawdown_limit_pct = float(self.risk_cfg.get("max_drawdown_limit_pct", 0.10))
         
+        # Risk Denominator Configuration (RSK-001)
+        self.risk_denominator = self.port_cfg.get("risk_denominator", "component_allocation").lower().strip()
+        if self.risk_denominator not in ["component_allocation", "portfolio_equity"]:
+            logger.warning(f"Unknown risk_denominator '{self.risk_denominator}', defaulting to 'component_allocation'")
+            self.risk_denominator = "component_allocation"
+
         # Correlation Control Settings (Mode-dependent: 0.70 strict vs 0.80 loose_stage1)
         self.corr_cfg = self.port_cfg.get("correlation_control", {})
         self.corr_enabled = bool(self.corr_cfg.get("enabled", True))
@@ -98,13 +104,31 @@ class PortfolioPaperTrader:
         self.db = DatabaseManager(main_config.get("database", {}).get("path"))
         
         self.open_positions = {}  # symbol -> position dict
+        self.pending_orders = {}   # symbol -> pending order dict awaiting fill confirmation (EXE-002)
         self.executed_trades_history = []
+        self._restore_idempotency_state()
         self._sync_positions_on_startup()
 
         logger.info(
             f"PortfolioPaperTrader initialized in [{self.trading_mode.upper()}] mode! "
             f"BTC Regimes: {self.btc_allowed_regimes} | Correlation Limit: {self.max_corr_threshold:.2f}"
         )
+
+    def _restore_idempotency_state(self):
+        """Restores executed signal IDs from DuckDB to prevent duplicate orders across restarts (EXE-004)."""
+        try:
+            with self.db.get_connection() as con:
+                sigs = con.execute("SELECT DISTINCT signal_id FROM signals WHERE signal_id IS NOT NULL").fetchall()
+                for row in sigs:
+                    if row[0]:
+                        self.alpaca.executed_signal_ids.add(row[0])
+                trades = con.execute("SELECT DISTINCT trade_id FROM trades WHERE trade_id IS NOT NULL").fetchall()
+                for row in trades:
+                    if row[0]:
+                        self.alpaca.executed_signal_ids.add(row[0])
+            logger.debug(f"Restored {len(self.alpaca.executed_signal_ids)} historical signal/trade IDs for idempotency.")
+        except Exception as e:
+            logger.debug(f"Note on restoring idempotency state from DuckDB: {e}")
 
     def _sync_positions_on_startup(self):
         """Synchronizes internal open positions with Alpaca live positions and DuckDB."""
@@ -145,7 +169,7 @@ class PortfolioPaperTrader:
                     "highest_price": max(entry_px, curr_px),
                     "trailing_stop_active": False,
                     "bars_held": 0,
-                    "opened_at": db_pos.get("opened_at", datetime.datetime.utcnow())
+                    "opened_at": db_pos.get("opened_at", datetime.datetime.now(datetime.timezone.utc))
                 }
                 logger.info(f"Synchronized active Alpaca position on startup: {int_sym} Qty: {qty} Entry: ${entry_px:,.2f}")
                 
@@ -316,7 +340,7 @@ class PortfolioPaperTrader:
                     self.alpaca.close_position(sym, qty=qty)
                     
                     # Record Closed Trade in DuckDB Journal
-                    now_dt = datetime.datetime.utcnow()
+                    now_dt = datetime.datetime.now(datetime.timezone.utc)
                     pnl_dollars = (exit_price - entry_px) * qty
                     pnl_pct = (exit_price - entry_px) / entry_px if entry_px > 0 else 0.0
                     dollar_risk = float(pos.get("risk_usd", 0.0))
@@ -367,6 +391,29 @@ class PortfolioPaperTrader:
                 logger.debug(f"{sym} already has an active open position. Skipping new entry.")
                 continue
 
+            # Check if there is an unresolved pending order at the broker (EXE-002)
+            if sym in self.pending_orders:
+                p_info = self.pending_orders[sym]
+                p_id = p_info.get("order_id")
+                if p_id:
+                    v_res = self.alpaca.poll_order_fill(p_id, max_wait_seconds=1.5, poll_interval=0.5)
+                    if v_res.get("status") in ["filled", "partially_filled"]:
+                        logger.info(f"Pending order for {sym} successfully verified as filled at broker!")
+                        p_sig = p_info.get("sig", {})
+                        p_sig["quantity"] = float(v_res.get("filled_qty", p_sig.get("quantity", 0.0)))
+                        p_sig["entry_price"] = float(v_res.get("filled_avg_price", p_sig.get("close_price", 0.0)))
+                        p_sig["close_price"] = p_sig["entry_price"]
+                        self.open_positions[sym] = p_sig
+                        self._log_trade_journal(p_sig, v_res)
+                        self.pending_orders.pop(sym, None)
+                        continue
+                    elif v_res.get("status") in ["rejected", "canceled", "expired"]:
+                        logger.info(f"Pending order for {sym} was {v_res.get('status')}. Clearing pending order tracking.")
+                        self.pending_orders.pop(sym, None)
+                    else:
+                        logger.debug(f"{sym} has an unresolved pending order ({p_id}). Skipping new entry this tick.")
+                        continue
+
             p = self.pipeline[sym]
             cfg = p["config"]
             
@@ -375,11 +422,15 @@ class PortfolioPaperTrader:
                 tf_htf = cfg["asset"]["htf_timeframe"]
                 
                 # Fetch live candles with real-time Alpaca market feed
-                df_ltf = p["data_provider"].fetch_data(symbol=sym, interval=tf_ltf, days_back=15, live=True)
-                df_htf = p["data_provider"].fetch_data(symbol=sym, interval=tf_htf, days_back=30, live=True)
+                df_ltf_raw = p["data_provider"].fetch_data(symbol=sym, interval=tf_ltf, days_back=15, live=True)
+                df_htf_raw = p["data_provider"].fetch_data(symbol=sym, interval=tf_htf, days_back=30, live=True)
+
+                # DAT-001: Guarantee evaluation strictly on completed bars (eliminate forming candle flicker)
+                df_ltf = DataProvider.get_completed_candles(df_ltf_raw, interval=tf_ltf)
+                df_htf = DataProvider.get_completed_candles(df_htf_raw, interval=tf_htf)
 
                 if df_ltf.empty or len(df_ltf) < 25:
-                    logger.warning(f"Insufficient live bar data fetched for {sym}. Skipping tick evaluation.")
+                    logger.warning(f"Insufficient completed bar data fetched for {sym}. Skipping tick evaluation.")
                     continue
 
                 df_reg = p["vol_classifier"].predict_regimes(df_ltf)
@@ -405,12 +456,19 @@ class PortfolioPaperTrader:
                     sl_price = latest_close - sl_dist
                     tp_price = latest_close + (latest_atr * p["signal_engine"].tp_atr_mult)
 
-                    # Position Sizing based on allocated component capital (0.5% risk per trade)
-                    risk_amount_usd = comp_capital * 0.005
+                    # Position Sizing: RSK-001 support for both 'component_allocation' and 'portfolio_equity'
+                    if self.risk_denominator == "portfolio_equity":
+                        risk_amount_usd = current_equity * 0.005
+                    else:
+                        # Default preserved: 0.5% of component allocated capital
+                        risk_amount_usd = comp_capital * 0.005
+
                     risk_per_unit = latest_close - sl_price
                     qty = risk_amount_usd / risk_per_unit if risk_per_unit > 0 else 0.0
 
-                    sig_id = f"{sym}_{latest_bar['open_time']}"
+                    # EXE-001: Deterministic formatted timestamp without whitespace/colons
+                    ts_str = pd.to_datetime(latest_bar['open_time']).strftime('%Y%m%d_%H%M%S')
+                    sig_id = f"{sym}_{ts_str}"
 
                     # Detect if trade was allowed specifically due to Stage 1 Loosening
                     is_loosened = False
@@ -433,7 +491,7 @@ class PortfolioPaperTrader:
                         "highest_price": latest_close,
                         "trailing_stop_active": False,
                         "bars_held": 0,
-                        "opened_at": datetime.datetime.utcnow(),
+                        "opened_at": datetime.datetime.now(datetime.timezone.utc),
                         "stop_loss": sl_price,
                         "take_profit": tp_price,
                         "quantity": qty,
@@ -520,14 +578,31 @@ class PortfolioPaperTrader:
                 estimated_price=sig["close_price"]
             )
             
-            if order_res.get("status") in ["accepted", "submitted", "filled", "dry_run_success"]:
+            if order_res.get("status") in ["filled", "dry_run_success"]:
+                # EXE-002: Broker fill confirmed with verified executed price & quantity
+                sig["quantity"] = float(order_res.get("filled_qty", sig["quantity"]))
+                sig["entry_price"] = float(order_res.get("filled_avg_price", sig["close_price"]))
+                sig["close_price"] = sig["entry_price"]
                 self.open_positions[sig["symbol"]] = sig
                 tick_orders.append(order_res)
                 self._log_trade_journal(sig, order_res)
+            elif order_res.get("status") == "partially_filled":
+                sig["quantity"] = float(order_res.get("filled_qty", sig["quantity"]))
+                sig["entry_price"] = float(order_res.get("filled_avg_price", sig["close_price"]))
+                sig["close_price"] = sig["entry_price"]
+                self.open_positions[sig["symbol"]] = sig
+                tick_orders.append(order_res)
+                self._log_trade_journal(sig, order_res)
+                logger.warning(f"Partially filled order for {sig['symbol']}: Qty {sig['quantity']}")
+            elif order_res.get("status") == "pending_unconfirmed":
+                self.pending_orders[sig["symbol"]] = {"order_id": order_res.get("order_id"), "sig": sig, "order_res": order_res}
+                logger.warning(f"Order for {sig['symbol']} remains pending at broker. Tracking to prevent duplicate submissions.")
+            else:
+                logger.error(f"Order for {sig['symbol']} was rejected or failed: {order_res.get('reason')}")
 
         return {
             "status": "success",
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "equity": current_equity,
             "signals_evaluated": len(tick_signals),
             "orders_placed": len(tick_orders),
@@ -536,7 +611,7 @@ class PortfolioPaperTrader:
 
     def _log_trade_journal(self, sig: Dict[str, Any], order_res: Dict[str, Any]):
         """Persists paper trade orders and positions directly into DuckDB (clean, no CSV flooding)."""
-        now_dt = datetime.datetime.utcnow()
+        now_dt = datetime.datetime.now(datetime.timezone.utc)
         sym = sig["symbol"]
         cfg_asset = self.asset_configs.get(sym, {}).get("asset", {})
         
@@ -600,7 +675,7 @@ class PortfolioPaperTrader:
         positions = self.alpaca.get_open_positions()
 
         summary = {
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "trading_mode": self.trading_mode,
             "account_equity": equity,
             "starting_daily_equity": self.daily_start_equity,
