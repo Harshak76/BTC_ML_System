@@ -1,0 +1,311 @@
+{
+  "experiment_id": "EXP-20261118-171823-104f2f",
+  "created_at": "2026-11-18T17:19:27.671765+00:00",
+  "strategy_name": "btc_ml_system_v5_portfolio",
+  "strategy_version": "v5.1_next_bar_open",
+  "asset": "PORTFOLIO_7_ASSETS",
+  "timeframe": "1H/4H_HYBRID",
+  "parameter_config": {
+    "system": {
+      "name": "Simple Multi-Asset Portfolio Mode V5.0",
+      "version": "5.0.0",
+      "seed": 42
+    },
+    "database": {
+      "path": "data/btc_ml_system.duckdb",
+      "enabled": true
+    },
+    "portfolio": {
+      "initial_capital": 100000.0,
+      "weights": {
+        "equity_basket": 0.5,
+        "BTCUSDT": 0.25,
+        "ETHUSDT": 0.25
+      },
+      "risk_limits": {
+        "max_portfolio_risk_pct": 0.03,
+        "max_daily_loss_pct": 0.02,
+        "max_drawdown_limit_pct": 0.1
+      },
+      "correlation_control": {
+        "enabled": true,
+        "lookback_window": 30,
+        "max_correlation_threshold": 0.7
+      },
+      "execution_timing": "next_bar_open"
+    }
+  },
+  "dataset_info": {
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "TSLA",
+      "AMZN",
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "history_years": 2
+  },
+  "cost_assumptions": {
+    "slippage_bps": 5,
+    "commission_bps": 10
+  },
+  "candidate_count": 8,
+  "completed_trials": 8,
+  "random_seed": 42,
+  "validation_results": {
+    "portfolio_metrics": {
+      "initial_capital": 100000.0,
+      "final_capital": 99950.75038425598,
+      "total_return_pct": -0.049249615744018226,
+      "cagr_pct": -0.010019069136513181,
+      "sharpe_ratio": -0.0029929478416542985,
+      "sortino_ratio": -0.0011786880574684295,
+      "calmar_ratio": -0.0020942820189804247,
+      "max_drawdown_pct": 4.784011439581972,
+      "max_drawdown_duration_bars": 20328,
+      "total_trades": 628,
+      "win_rate": 0.5143312101910829,
+      "profit_factor": 1.0046631956080676,
+      "avg_win_usd": 72.8038578175576,
+      "avg_loss_usd": 76.74261311821486,
+      "expectancy_usd": 0.17380425798658194,
+      "avg_r_multiple": 0.007595045688774957,
+      "var_95_pct": 0.0,
+      "var_99_pct": 0.042147116073902424,
+      "cvar_95_pct": 0.0012297884193764104,
+      "cvar_99_pct": 0.06992384470919917,
+      "skewness": 0.5631611954866087,
+      "kurtosis": 110.1896716332217,
+      "exposure_pct": 8.054517170122361,
+      "annualized_turnover": 0.0,
+      "simulated_years": 4.916552511415525
+    },
+    "bootstrap": {
+      "method": "trade_iid",
+      "iterations": 1000,
+      "original_trades_count": 628,
+      "mean_return_pct": 0.05744883404594156,
+      "std_return_pct": 2.5409500349089518,
+      "ci_90_return": [
+        -4.211224151903468,
+        4.265946291071754
+      ],
+      "ci_95_return": [
+        -5.031120054905974,
+        4.952997494906692
+      ],
+      "ci_99_return": [
+        -5.95959717764798,
+        6.203055864342459
+      ],
+      "prob_negative_return": 0.495,
+      "mean_win_rate": 0.5142834394904457,
+      "ci_95_win_rate": [
+        0.4729299363057325,
+        0.554140127388535
+      ],
+      "mean_profit_factor": 1.0073515481743667,
+      "ci_95_profit_factor": [
+        0.8103573869854532,
+        1.2370431681931402
+      ],
+      "mean_max_drawdown_pct": 2.934450227025766,
+      "percentile_95_max_dd": 5.438226200222281,
+      "percentile_99_max_dd": 6.759530735153596,
+      "prob_ruin_pct": 0.0,
+      "ruin_definition": "Loss >= 50.0% of initial capital"
+    },
+    "monte_carlo": {
+      "randomized_ordering": {
+        "scenario": "Randomized Trade Ordering",
+        "simulations": 1000,
+        "median_max_dd_pct": 2.576162101681608,
+        "percentile_95_max_dd_pct": 3.8252606942838128,
+        "percentile_99_max_dd_pct": 4.419813507146985,
+        "cvar_drawdown_95_pct": 4.2256948544904285,
+        "worst_case_max_dd_pct": 5.442929448656604,
+        "prob_max_dd_breach_pct": 100.0,
+        "equity_curve_p5_final": 100109.14907401557,
+        "equity_curve_p50_final": 100109.14907401557,
+        "equity_curve_p95_final": 100109.14907401557
+      },
+      "slippage_variation": {
+        "scenario": "Execution Slippage Variation",
+        "mean_return_pct": -0.4114303201232936,
+        "p5_return_pct": -0.5882279723458065,
+        "p95_max_dd_pct": 5.109032380982062,
+        "prob_negative_return": 100.0
+      },
+      "transaction_cost_variation": {
+        "scenario": "Transaction Cost Variation (1.0x - 3.0x)",
+        "mean_return_pct": -5.934379830614029,
+        "p5_return_pct": -11.692907073014608,
+        "prob_negative_return": 99.2
+      },
+      "adverse_fills": {
+        "scenario": "Adverse Fills (5-15 bps penalty)",
+        "mean_return_pct": -6.169946875094158,
+        "p5_return_pct": -8.944872988085566,
+        "prob_negative_return": 100.0
+      },
+      "missed_trades": {
+        "scenario": "Missed Trades (8% omission rate)",
+        "mean_return_pct": 0.0852211241274061,
+        "p5_return_pct": -1.0690240431687241,
+        "prob_negative_return": 45.4
+      },
+      "regime_stress": {
+        "scenario": "Regime Volatility Stress (20% adverse shocks)",
+        "mean_return_pct": -2.2184541744226385,
+        "p95_max_dd_pct": 6.751664115578336,
+        "worst_case_dd_pct": 7.401483926152713
+      },
+      "portfolio_simultaneous_loss": {
+        "scenario": "Portfolio Simultaneous Loss (Correlated Flash Shock)",
+        "simultaneous_portfolio_hit_pct": 3.0,
+        "daily_loss_limit_threshold_pct": 0.02,
+        "breaches_daily_loss_limit": true,
+        "safety_mechanism": "Daily Loss Circuit Breaker freezes all trade entries immediately for remainder of day."
+      },
+      "disclaimer": "All estimates are empirical non-parametric simulations, not guaranteed future probability bounds."
+    },
+    "walk_forward": {
+      "mode": "rolling",
+      "total_windows": 5,
+      "consistency_ratio": 0.8,
+      "walk_forward_efficiency": 0.72,
+      "avg_is_sharpe": -0.003741184802067873,
+      "avg_oos_sharpe": -0.0026936530574888685,
+      "avg_is_return_pct": -0.017237365510406378,
+      "avg_oos_return_pct": -0.012312403936004556,
+      "total_oos_trades": 502
+    },
+    "out_of_sample": {
+      "in_sample": {
+        "total_return_pct": -0.03841470028033422,
+        "sharpe_ratio": -0.0032922426258197284,
+        "max_drawdown_pct": 4.066409723644676
+      },
+      "out_of_sample": {
+        "total_return_pct": -0.01083491546368401,
+        "sharpe_ratio": -0.0025440056654061536,
+        "max_drawdown_pct": 4.784011439581972,
+        "profit_factor": 1.0046631956080676
+      },
+      "sharpe_retention_ratio": 0.77,
+      "return_retention_ratio": 0.28
+    },
+    "pbo_cscv": {
+      "pbo": 0.8015873015873016,
+      "n_configurations": 8,
+      "n_blocks": 10,
+      "total_partitions_evaluated": 252,
+      "prob_loss": 0.6904761904761905,
+      "mean_in_sample_sharpe": 0.7467847898433219,
+      "mean_out_of_sample_sharpe": -0.2513663735704843,
+      "performance_degradation": 0.9981511634138062,
+      "median_relative_rank": 0.3333333333333333,
+      "p10_relative_rank": 0.1111111111111111,
+      "p90_relative_rank": 0.6666666666666666,
+      "mean_logit": -0.6477858051015417,
+      "is_overfitted": true,
+      "interpretation": "PBO = 80.2%. There is a 80.2% empirical probability that the in-sample optimal strategy will deliver below-median performance out-of-sample. HIGH RISK OF OVERFITTING."
+    },
+    "deflated_sharpe": {
+      "observed_annualized_sharpe": -0.0029929478416542985,
+      "observed_periodic_sharpe": -3.8485156519089236e-05,
+      "deflated_sharpe_ratio": 0.08545561258533424,
+      "probabilistic_sharpe_ratio": 0.49681376949735423,
+      "expected_max_annualized_sharpe": 0.5101285628725096,
+      "expected_max_periodic_sharpe": 0.006559545513547988,
+      "n_observations": 43070,
+      "n_trials": 8,
+      "variance_of_trials": 2.021289570183296e-05,
+      "skewness": 0.46671305744986313,
+      "kurtosis": 109.755544244848,
+      "mertens_standard_error": 0.004818607085647765,
+      "is_statistically_significant_95": false,
+      "is_statistically_significant_90": false,
+      "interpretation": "Observed Sharpe = -0.00. Expected Max Sharpe under 8 trials = 0.51. DSR = 8.5%. Not statistically significant at 95% level. High probability of selection bias."
+    },
+    "validation_gate": {
+      "overall_status": "REJECTED",
+      "passed": false,
+      "requires_approval": false,
+      "checks": [
+        {
+          "check": "Trade Count Sufficiency",
+          "threshold": ">= 100 trades",
+          "observed": "628 trades",
+          "status": "PASS",
+          "rationale": "Prevents small-sample statistical anomalies."
+        },
+        {
+          "check": "Walk-Forward Window Consistency",
+          "threshold": ">= 50.0% positive OOS windows",
+          "observed": "80.0%",
+          "status": "PASS",
+          "rationale": "Ensures temporal robustness across varying market regimes."
+        },
+        {
+          "check": "Parameter Plateau Stability",
+          "threshold": ">= 0.55",
+          "observed": "0.00",
+          "status": "FAIL",
+          "rationale": "Prevents parameter cliff overfitting."
+        },
+        {
+          "check": "Strict OOS Holdout Return & Drawdown",
+          "threshold": "Return > 0.0% and Max DD <= 10.0%",
+          "observed": "Return=-0.01%, Max DD=4.78%",
+          "status": "FAIL",
+          "rationale": "Verifies performance on untouched chronological future data."
+        },
+        {
+          "check": "Bootstrap Negative Return Probability",
+          "threshold": "P(Return < 0) <= 30.0%",
+          "observed": "49.5%",
+          "status": "FAIL",
+          "rationale": "Validates resampling confidence intervals."
+        },
+        {
+          "check": "Monte Carlo 95th Percentile Drawdown",
+          "threshold": "<= 10.0% Max DD",
+          "observed": "3.83%",
+          "status": "PASS",
+          "rationale": "Guards against adverse path-dependent drawdowns."
+        },
+        {
+          "check": "2x Transaction Cost Stress Test",
+          "threshold": "Return > 0.0% at 2x fees & slippage",
+          "observed": "Return=-4.19%",
+          "status": "FAIL",
+          "rationale": "Guarantees strategy edge exceeds broker execution friction."
+        },
+        {
+          "check": "Probability of Backtest Overfitting (PBO)",
+          "threshold": "< 50.0%",
+          "observed": "80.2%",
+          "status": "FAIL",
+          "rationale": "Ensures IS winner is not below median out-of-sample."
+        },
+        {
+          "check": "Deflated Sharpe Ratio (Multiple Testing Correction)",
+          "threshold": ">= 80.0% (Warning < 80.0%)",
+          "observed": "8.5%",
+          "status": "FAIL",
+          "rationale": "Adjusts for selection bias, number of trials, and return non-normality."
+        },
+        {
+          "check": "Data Pipeline & Zero-Leakage Integrity",
+          "threshold": "0 lookahead leaks, 0 unclosed candles evaluated",
+          "observed": "Passed Phase 1 Data Integrity & Closed Candle Filtering",
+          "status": "PASS",
+          "rationale": "Mandatory structural prerequisite."
+        }
+      ]
+    }
+  }
+}
