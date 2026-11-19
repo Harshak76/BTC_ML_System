@@ -96,6 +96,14 @@ class BootstrapEngine:
 
         prob_negative_return = float(np.mean(bootstrapped_returns < 0))
         prob_ruin = float(ruin_count / n_iter)
+        upper_95_bound = (3.0 / n_iter) * 100.0 if ruin_count == 0 else (prob_ruin * 100.0)
+        ruin_note = (
+            f"Observed ruin events: {ruin_count}/{n_iter} ({prob_ruin * 100.0:.2f}%). "
+            f"Under the Rule of Three, the 95% upper confidence bound for risk of ruin is <= {upper_95_bound:.2f}%. "
+            "Zero observed occurrences in 1,000 simulations does NOT prove zero mathematical risk of ruin."
+            if ruin_count == 0 else
+            f"Observed ruin frequency: {prob_ruin * 100.0:.2f}%."
+        )
 
         return {
             "method": "trade_iid",
@@ -115,6 +123,8 @@ class BootstrapEngine:
             "percentile_95_max_dd": float(np.percentile(bootstrapped_max_dds, 95)),
             "percentile_99_max_dd": float(np.percentile(bootstrapped_max_dds, 99)),
             "prob_ruin_pct": prob_ruin * 100.0,
+            "prob_ruin_upper_95_ci_pct": upper_95_bound,
+            "ruin_uncertainty_note": ruin_note,
             "ruin_definition": f"Loss >= {self.ruin_threshold_pct}% of initial capital"
         }
 

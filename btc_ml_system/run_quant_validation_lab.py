@@ -149,14 +149,17 @@ def main():
     print(f"    Consistency Ratio: {wf_results['consistency_ratio']:.1%} | Walk-Forward Efficiency (WFE): {wf_results['walk_forward_efficiency']:.2f}")
 
     # 7. Strict Out-of-Sample Holdout Validation (Final 20%)
-    print("\n[+] Step 7: Evaluating Strict Chronological Holdout (Untouched Final 20%)...")
-    oos_eval_res = {
-        "in_sample": {"total_return_pct": ret_pct * 0.78, "sharpe_ratio": sharpe * 1.10, "max_drawdown_pct": dd_pct * 0.85},
-        "out_of_sample": {"total_return_pct": ret_pct * 0.22, "sharpe_ratio": sharpe * 0.85, "max_drawdown_pct": dd_pct, "profit_factor": pf},
-        "sharpe_retention_ratio": 0.77,
-        "return_retention_ratio": 0.28
-    }
-    print(f"    Holdout Return: {oos_eval_res['out_of_sample']['total_return_pct']:.2f}% | Holdout Max DD: {oos_eval_res['out_of_sample']['max_drawdown_pct']:.2f}% | Retention: {oos_eval_res['sharpe_retention_ratio']:.1%}")
+    print("\n[+] Step 7: Evaluating Independent Chronological Holdout (Quarantined Final 20%)...")
+    oos_engine = OutOfSampleEngine({"oos_validation": {"holdout_pct": 0.20, "purge_bars": 24}})
+    oos_eval_res = oos_engine.evaluate_portfolio_holdout(
+        portfolio_config=port_cfg,
+        asset_configs=asset_configs
+    )
+    oos_out = oos_eval_res["out_of_sample"]
+    print(f"    Holdout Return: {oos_out['total_return_pct']:.2f}% | Holdout Max DD: {oos_out['max_drawdown_pct']:.2f}% | Retention: {oos_eval_res['sharpe_retention_ratio']:.1%}")
+    print(f"    Holdout Trades: {oos_eval_res['holdout_trades_count']} | Bounds: {oos_eval_res['date_boundaries']['holdout_start'][:10]} to {oos_eval_res['date_boundaries']['holdout_end'][:10]}")
+    if oos_eval_res.get("is_contaminated"):
+        print(f"    [!] Holdout Notice: {oos_eval_res['contamination_note']}")
 
     # 8. CSCV & Probability of Backtest Overfitting (PBO)
     print("\n[+] Step 8: Computing CSCV and Probability of Backtest Overfitting (PBO)...")
@@ -166,7 +169,7 @@ def main():
     eq_steps = len(pm_raw_results.get("equity_curve", []))
     T_steps = max(eq_steps, 200)
     N_candidates = 8
-    # Baseline returns plus small candidate variations
+    # Baseline returns plus candidate variations
     base_rets = np.diff([step["equity"] for step in pm_raw_results.get("equity_curve", [])]) / port_metrics["initial_capital"]
     if len(base_rets) < T_steps:
         base_rets = np.pad(base_rets, (0, T_steps - len(base_rets)), mode="constant", constant_values=0.0)
@@ -181,6 +184,8 @@ def main():
     # 9. Deflated Sharpe Ratio (DSR)
     print("\n[+] Step 9: Computing Deflated Sharpe Ratio (DSR & PSR)...")
     dsr_engine = DeflatedSharpeEngine()
+    hist_trials_info = tracker.get_total_historical_trials()
+    effective_trials = max(N_candidates, hist_trials_info.get("total_candidate_trials", N_candidates))
     trial_sharpes = list(np.mean(candidates_matrix, axis=0) / (np.std(candidates_matrix, axis=0) + 1e-12) * np.sqrt(252 * 24))
     dsr_res = dsr_engine.calculate_dsr(
         observed_sharpe=sharpe,
@@ -189,7 +194,7 @@ def main():
         returns=base_rets,
         annualization_factor=252 * 24
     )
-    print(f"    Observed Sharpe: {sharpe:.2f} | Expected Max Sharpe under {len(trial_sharpes)} trials: {dsr_res['expected_max_annualized_sharpe']:.2f}")
+    print(f"    Observed Sharpe: {sharpe:.2f} | Expected Max Sharpe under {effective_trials} trials: {dsr_res['expected_max_annualized_sharpe']:.2f}")
     print(f"    Deflated Sharpe Ratio (DSR): {dsr_res['deflated_sharpe_ratio']:.1%} | PSR(0): {dsr_res['probabilistic_sharpe_ratio']:.1%}")
     print(f"    {dsr_res['interpretation']}")
 
@@ -206,7 +211,8 @@ def main():
         pbo_res=pbo_res,
         dsr_res=dsr_res,
         cost_stress_res=cost_stress_metrics,
-        is_portfolio=True
+        is_portfolio=True,
+        require_full_suite=True
     )
 
     print("\n" + "=" * 105)
@@ -217,6 +223,7 @@ def main():
     for chk in gate_res["checks"]:
         print(f"  {chk['check']:<42} | {chk['threshold']:<25} | {chk['observed']:<18} | {chk['status']:<10}")
     print("=" * 105)
+    print(f"  Passed: {gate_res['passed_count']}/{gate_res['total_checks']} | Failed: {gate_res['failed_count']} | Incomplete: {gate_res['incomplete_count']} | Req Approval: {gate_res['requires_approval_count']}")
     print(f"  OVERALL VALIDATION GATE STATUS: {gate_res['overall_status']}")
     print("=" * 105)
 
@@ -240,7 +247,10 @@ def main():
             "validation_gate": gate_res
         },
         candidate_count=N_candidates,
-        completed_trials=N_candidates
+        completed_trials=N_candidates,
+        failed_trials=0,
+        abandoned_trials=0,
+        return_frequency="1h"
     )
     print(f"\n[*] Experiment successfully registered and logged to {tracker.registry_dir / f'{exp_id}.json'}")
 

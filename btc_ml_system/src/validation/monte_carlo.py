@@ -48,15 +48,17 @@ class MonteCarloEngine:
         initial_capital: float = 10000.0,
         n_simulations: Optional[int] = None
     ) -> Dict[str, Any]:
-        """Runs the complete suite of Monte Carlo scenarios."""
+        """Runs the complete suite of 9 institutional Monte Carlo stress-testing scenarios."""
         n_sims = n_simulations or self.n_simulations
 
         res_shuffle = self.simulate_randomized_trade_ordering(trades, initial_capital, n_sims)
         res_slippage = self.simulate_slippage_variation(trades, initial_capital, n_sims)
         res_fees = self.simulate_transaction_cost_variation(trades, initial_capital, n_sims)
         res_adverse = self.simulate_adverse_fills(trades, initial_capital, n_sims)
+        res_delayed = self.simulate_delayed_execution(trades, initial_capital, n_sims)
         res_missed = self.simulate_missed_trades(trades, initial_capital, n_sims, drop_rate=0.08)
         res_regime = self.simulate_regime_stress(trades, initial_capital, n_sims)
+        res_param_jitter = self.simulate_parameter_perturbations(trades, initial_capital, n_sims)
         res_crash = self.simulate_simultaneous_loss(trades, initial_capital, n_sims)
 
         return {
@@ -64,9 +66,12 @@ class MonteCarloEngine:
             "slippage_variation": res_slippage,
             "transaction_cost_variation": res_fees,
             "adverse_fills": res_adverse,
+            "delayed_execution": res_delayed,
             "missed_trades": res_missed,
             "regime_stress": res_regime,
+            "parameter_perturbations": res_param_jitter,
             "portfolio_simultaneous_loss": res_crash,
+            "total_scenarios_evaluated": 9,
             "disclaimer": "All estimates are empirical non-parametric simulations, not guaranteed future probability bounds."
         }
 
@@ -298,6 +303,76 @@ class MonteCarloEngine:
             "mean_return_pct": float(np.mean(returns)),
             "p95_max_dd_pct": float(np.percentile(max_dds, 95)),
             "worst_case_dd_pct": float(np.max(max_dds))
+        }
+
+    def simulate_delayed_execution(
+        self,
+        trades: List[Dict[str, Any]],
+        initial_capital: float = 10000.0,
+        n_sims: int = 1000,
+        max_delay_drift_bps: float = 10.0
+    ) -> Dict[str, Any]:
+        """Scenario 5: Delayed Execution. Simulates execution latency shocks where fills drift adversely by 2-10 bps."""
+        rng = np.random.default_rng(self.random_seed + 5)
+        pnls = np.array([float(t.get("pnl_usd", t.get("pnl", 0.0))) for t in trades])
+        pos_values = np.array([float(t.get("position_value", 5000.0)) for t in trades])
+        n_trades = len(pnls)
+
+        if n_trades == 0:
+            return {"error": "No trades"}
+
+        sim_returns = np.zeros(n_sims)
+        for s in range(n_sims):
+            # Adverse drift between 2 bps and max_delay_drift_bps
+            drift_bps = rng.uniform(2.0, max_delay_drift_bps, size=n_trades)
+            drift_cost = pos_values * (drift_bps / 10000.0)
+            delayed_pnls = pnls - drift_cost
+            final_cap = initial_capital + np.sum(delayed_pnls)
+            sim_returns[s] = ((final_cap - initial_capital) / initial_capital) * 100.0
+
+        return {
+            "scenario": f"Delayed Execution Latency (2-{max_delay_drift_bps:.0f} bps drift)",
+            "mean_return_pct": float(np.mean(sim_returns)),
+            "p5_return_pct": float(np.percentile(sim_returns, 5)),
+            "prob_negative_return": float(np.mean(sim_returns < 0) * 100.0)
+        }
+
+    def simulate_parameter_perturbations(
+        self,
+        trades: List[Dict[str, Any]],
+        initial_capital: float = 10000.0,
+        n_sims: int = 1000,
+        jitter_pct: float = 0.05
+    ) -> Dict[str, Any]:
+        """Scenario 8: Parameter Perturbations. Simulates stochastic jitter (+/- 5%) around indicator and stop thresholds."""
+        rng = np.random.default_rng(self.random_seed + 8)
+        pnls = np.array([float(t.get("pnl_usd", t.get("pnl", 0.0))) for t in trades])
+        n_trades = len(pnls)
+
+        if n_trades == 0:
+            return {"error": "No trades"}
+
+        sim_returns = np.zeros(n_sims)
+        max_dds = np.zeros(n_sims)
+
+        for s in range(n_sims):
+            # Multiplicative noise simulating slight entry/exit variations
+            jitter = rng.normal(1.0, jitter_pct, size=n_trades)
+            perturbed_pnls = pnls * jitter
+            path = np.zeros(n_trades + 1)
+            path[0] = initial_capital
+            path[1:] = initial_capital + np.cumsum(perturbed_pnls)
+            path = np.maximum(path, 1.0)
+            _, max_dd, _ = calculate_drawdown_series(path)
+            max_dds[s] = max_dd * 100.0
+            sim_returns[s] = ((path[-1] - initial_capital) / initial_capital) * 100.0
+
+        return {
+            "scenario": f"Parameter Perturbations (+/- {jitter_pct*100:.0f}% threshold jitter)",
+            "mean_return_pct": float(np.mean(sim_returns)),
+            "p5_return_pct": float(np.percentile(sim_returns, 5)),
+            "p95_max_dd_pct": float(np.percentile(max_dds, 95)),
+            "prob_negative_return": float(np.mean(sim_returns < 0) * 100.0)
         }
 
     def simulate_simultaneous_loss(

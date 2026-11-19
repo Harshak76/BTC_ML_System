@@ -122,8 +122,8 @@ def test_parameter_stability_zero_and_negative_mean_defect():
         target_metric="sharpe_ratio"
     )
     
-    # Verify defect manifestation
-    assert observed_score == 0.0, "Defect confirmed: negative mean forces stability score to 0.00"
+    # Verify Phase 2.2 fix: flat negative surface receives 1.0 stability (separation of stability from profitability)
+    assert observed_score == 1.0, "Phase 2.2 fix verified: flat negative surface receives 1.0 stability"
 
 
 def test_cscv_combinatorics_partition_integrity():
