@@ -116,10 +116,10 @@ class OutOfSampleEngine:
         """
         from btc_ml_system.src.portfolio_manager import PortfolioManager
         from btc_ml_system.src.data_provider import DataProvider
-        from btc_ml_system.src.regime import VolatilityRegimeClassifier
+        from btc_ml_system.src.regimes import VolatilityRegimeClassifier
         from btc_ml_system.src.direction import SessionFilter
-        from btc_ml_system.src.strategy import StrategyFactory
-        from btc_ml_system.src.signals import SignalEngine
+        from btc_ml_system.src.strategies import StrategyFactory
+        from btc_ml_system.src.signal_engine import SignalEngine
 
         pct = holdout_pct or self.holdout_pct
 

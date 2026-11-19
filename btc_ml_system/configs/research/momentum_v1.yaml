@@ -1,0 +1,20 @@
+# Research Strategy Configuration: Candidate 2 (Momentum)
+strategy:
+  id: "RS_MOM_TSMOM_BREAKOUT_V1"
+  name: "Time-Series Momentum with Donchian Breakout & RSI Exhaustion Filter"
+  family: "momentum"
+  version: "1.0.0"
+  parameters:
+    channel_entry_period: 20
+    channel_exit_period: 10
+    mom_period: 20
+    rsi_period: 14
+    rsi_max_entry: 75.0
+    atr_period: 14
+    atr_stop_multiplier: 2.0
+    atr_tp_multiplier: 4.5
+
+execution:
+  timing: "next_bar_open"
+  enforce_completed_candles: true
+  unit: "percentage_points"

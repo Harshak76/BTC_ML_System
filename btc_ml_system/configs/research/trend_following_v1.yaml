@@ -1,0 +1,20 @@
+# Research Strategy Configuration: Candidate 1 (Trend Following)
+strategy:
+  id: "RS_TF_DUAL_EMA_ATR_V1"
+  name: "Dual EMA Crossover with ATR Channel & Trailing Stop"
+  family: "trend_following"
+  version: "1.0.0"
+  parameters:
+    fast_ema_period: 21
+    slow_ema_period: 55
+    adx_period: 14
+    adx_threshold: 20.0
+    atr_period: 14
+    atr_stop_multiplier: 2.0
+    atr_tp_multiplier: 4.0
+    trailing_stop_pct: 0.025
+
+execution:
+  timing: "next_bar_open"
+  enforce_completed_candles: true
+  unit: "percentage_points"

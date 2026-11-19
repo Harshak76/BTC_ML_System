@@ -1,0 +1,18 @@
+# Research Strategy Configuration: Candidate 3 (Mean Reversion)
+strategy:
+  id: "RS_MR_BB_RSI_REVERSION_V1"
+  name: "Bollinger Band Deviation with RSI Oversold & Mean Reversion Exit"
+  family: "mean_reversion"
+  version: "1.0.0"
+  parameters:
+    bb_period: 20
+    bb_std: 2.0
+    rsi_period: 14
+    rsi_oversold: 32.0
+    atr_period: 14
+    atr_stop_multiplier: 1.5
+
+execution:
+  timing: "next_bar_open"
+  enforce_completed_candles: true
+  unit: "percentage_points"

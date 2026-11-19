@@ -1,0 +1,65 @@
+# Quantitative Research Universe Configuration - Phase 3A
+# Defines the multi-asset scope, realistic broker friction, and risk limits for research simulations.
+# NOTE: Research only. No broker connections or live/paper order execution enabled.
+
+universe:
+  name: "Phase 3A Multi-Asset Research Universe"
+  version: "3.0.0"
+  assets:
+    equities:
+      - symbol: "AAPL"
+        timeframe: "1h"
+        asset_class: "US_EQUITY"
+        exchange: "NASDAQ"
+        slippage_bps: 2.0
+        commission_bps: 0.0
+      - symbol: "MSFT"
+        timeframe: "1h"
+        asset_class: "US_EQUITY"
+        exchange: "NASDAQ"
+        slippage_bps: 2.0
+        commission_bps: 0.0
+      - symbol: "NVDA"
+        timeframe: "1h"
+        asset_class: "US_EQUITY"
+        exchange: "NASDAQ"
+        slippage_bps: 2.0
+        commission_bps: 0.0
+      - symbol: "TSLA"
+        timeframe: "1h"
+        asset_class: "US_EQUITY"
+        exchange: "NASDAQ"
+        slippage_bps: 2.0
+        commission_bps: 0.0
+      - symbol: "AMZN"
+        timeframe: "1h"
+        asset_class: "US_EQUITY"
+        exchange: "NASDAQ"
+        slippage_bps: 2.0
+        commission_bps: 0.0
+    crypto:
+      - symbol: "BTCUSDT"
+        timeframe: "1h"
+        asset_class: "CRYPTO_SPOT"
+        exchange: "BINANCE"
+        slippage_bps: 5.0
+        commission_bps: 10.0
+      - symbol: "ETHUSDT"
+        timeframe: "1h"
+        asset_class: "CRYPTO_SPOT"
+        exchange: "BINANCE"
+        slippage_bps: 5.0
+        commission_bps: 10.0
+
+portfolio_risk:
+  initial_capital: 100000.0
+  max_portfolio_risk_pct: 0.03
+  max_daily_loss_pct: 0.02
+  max_drawdown_limit_pct: 0.10
+  risk_per_trade_pct: 0.005
+  max_open_positions: 4
+  execution_timing: "next_bar_open"
+  enforce_completed_candles: true
+
+units:
+  declared_return_unit: "percentage_points" # e.g. 1.0 for +1.0%
