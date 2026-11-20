@@ -178,12 +178,12 @@ class BaseResearchStrategy(ABC):
                     "Likely passing percentage points (e.g. 10.0 for 10%) instead of decimals (0.10)."
                 )
         elif declared_unit == ReturnUnit.PERCENTAGE_POINTS:
-            # If all non-zero values are < 0.02, likely decimal fractions were passed instead of percentage points
+            # If all non-zero values are <= 0.01 (<= 1 bp), likely decimal fractions were passed instead of percentage points
             non_zeros = arr[arr != 0.0]
-            if len(non_zeros) > 10 and float(np.max(np.abs(non_zeros))) < 0.05:
+            if len(non_zeros) > 10 and float(np.max(np.abs(non_zeros))) <= 0.01:
                 raise ValueError(
                     f"Return unit violation: Declared PERCENTAGE_POINTS but maximum non-zero value is {max_abs:.4f}. "
-                    "Likely passing decimal fractions (e.g. 0.01 for 1%) instead of percentage points (1.0)."
+                    "Likely passing decimal fractions (e.g. 0.005 for 0.5%) instead of percentage points (0.5)."
                 )
 
         return True

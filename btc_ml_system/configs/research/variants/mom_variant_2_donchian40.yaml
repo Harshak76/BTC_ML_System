@@ -1,0 +1,22 @@
+strategy_id: "RS_MOM_DONCHIAN_40_V1"
+strategy_name: "Time-Series Momentum Donchian (40) Breakout & RSI Exhaustion Filter"
+family: "momentum"
+version: "1.0.0"
+description: "Captures extended momentum breakouts using 40-bar Donchian channel highs with RSI ceiling filter."
+parameters:
+  channel_entry_period: 40
+  channel_exit_period: 20
+  mom_period: 40
+  rsi_period: 14
+  rsi_max_entry: 75.0
+  atr_period: 14
+  atr_stop_multiplier: 2.0
+  atr_tp_multiplier: 4.5
+execution_assumptions:
+  slippage_bps_crypto: 5.0
+  slippage_bps_equity: 2.0
+  commission_bps_crypto: 10.0
+  commission_bps_equity: 0.0
+  execution_timing: "next_bar_open"
+  enforce_completed_candles: true
+  expected_return_unit: "percentage_points"

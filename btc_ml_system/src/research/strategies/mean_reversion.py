@@ -39,25 +39,31 @@ class BbRsiMeanReversionStrategy(BaseResearchStrategy):
 
     @property
     def metadata(self) -> StrategyMetadata:
+        strat_id = self.config.get("strategy_id", "RS_MR_BB_RSI_REVERSION_V1")
+        version = self.config.get("version", "1.0.0")
+        strat_name = self.config.get(
+            "strategy_name",
+            f"Bollinger Band Deviation ({self.bb_period}, {self.bb_std} std) with RSI Oversold & Mean Reversion Exit"
+        )
         return StrategyMetadata(
-            strategy_id="RS_MR_BB_RSI_REVERSION_V1",
-            strategy_name="Bollinger Band Deviation with RSI Oversold & Mean Reversion Exit",
+            strategy_id=strat_id,
+            strategy_name=strat_name,
             family=StrategyFamily.MEAN_REVERSION,
-            version="1.0.0",
+            version=version,
             author="Quantitative Research Lab",
             description=(
-                "Exploits short-term statistical mean reversion when price pierces the lower "
-                "Bollinger Band under oversold RSI conditions. Targets the middle moving average band."
+                f"Exploits short-term statistical mean reversion when price pierces the lower "
+                f"Bollinger Band ({self.bb_std} std) under oversold RSI conditions. Targets the middle moving average band."
             ),
             supported_assets=["BTCUSDT", "ETHUSDT", "AAPL", "MSFT", "NVDA", "TSLA", "AMZN"],
             supported_timeframes=["1h", "4h"],
             parameters_schema={
-                "bb_period": 20,
-                "bb_std": 2.0,
-                "rsi_period": 14,
-                "rsi_oversold": 32.0,
-                "atr_period": 14,
-                "atr_stop_multiplier": 1.5
+                "bb_period": self.bb_period,
+                "bb_std": self.bb_std,
+                "rsi_period": self.rsi_period,
+                "rsi_oversold": self.rsi_oversold,
+                "atr_period": self.atr_period,
+                "atr_stop_multiplier": self.atr_stop_multiplier
             }
         )
 

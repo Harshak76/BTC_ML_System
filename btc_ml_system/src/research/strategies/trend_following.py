@@ -40,27 +40,33 @@ class DualEmaAtrTrendStrategy(BaseResearchStrategy):
 
     @property
     def metadata(self) -> StrategyMetadata:
+        strat_id = self.config.get("strategy_id", "RS_TF_DUAL_EMA_ATR_V1")
+        version = self.config.get("version", "1.0.0")
+        strat_name = self.config.get(
+            "strategy_name",
+            f"Dual EMA Crossover ({self.fast_period}/{self.slow_period}) with ATR Channel & Trailing Stop"
+        )
         return StrategyMetadata(
-            strategy_id="RS_TF_DUAL_EMA_ATR_V1",
-            strategy_name="Dual EMA Crossover with ATR Channel & Trailing Stop",
+            strategy_id=strat_id,
+            strategy_name=strat_name,
             family=StrategyFamily.TREND_FOLLOWING,
-            version="1.0.0",
+            version=version,
             author="Quantitative Research Lab",
             description=(
-                "Captures medium-term directional trends using Fast/Slow EMA crossovers. "
+                f"Captures medium-term directional trends using Fast ({self.fast_period}) / Slow ({self.slow_period}) EMA crossovers. "
                 "Enforces an ADX trend strength filter and sets volatility-adaptive ATR risk limits."
             ),
             supported_assets=["BTCUSDT", "ETHUSDT", "AAPL", "MSFT", "NVDA", "TSLA", "AMZN"],
             supported_timeframes=["1h", "4h", "1d"],
             parameters_schema={
-                "fast_ema_period": 21,
-                "slow_ema_period": 55,
-                "adx_period": 14,
-                "adx_threshold": 20.0,
-                "atr_period": 14,
-                "atr_stop_multiplier": 2.0,
-                "atr_tp_multiplier": 4.0,
-                "trailing_stop_pct": 0.025
+                "fast_ema_period": self.fast_period,
+                "slow_ema_period": self.slow_period,
+                "adx_period": self.adx_period,
+                "adx_threshold": self.adx_threshold,
+                "atr_period": self.atr_period,
+                "atr_stop_multiplier": self.atr_stop_multiplier,
+                "atr_tp_multiplier": self.atr_tp_multiplier,
+                "trailing_stop_pct": self.trailing_stop_pct
             }
         )
 

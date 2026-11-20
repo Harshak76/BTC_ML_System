@@ -1,0 +1,143 @@
+{
+  "experiment_id": "EXP-20261120-122229-5ae3d7",
+  "git_commit": "c92cb3338dc13bee6693b8a15b2e69299c4fc5e2",
+  "created_at": "2026-11-20T12:22:29.457368+00:00",
+  "strategy_name": "Dual EMA Crossover (20/50) with ATR Channel & Trailing Stop",
+  "strategy_version": "1.0.0",
+  "asset": "MULTI_ASSET",
+  "timeframe": "1h_4h",
+  "dataset_info": {
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "TSLA",
+      "AMZN",
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "date_range": "2024-2026",
+    "n_assets": 7
+  },
+  "dataset_identity": "['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'BTCUSDT', 'ETHUSDT']",
+  "dataset_date_range": "2024-2026",
+  "parameter_config": {
+    "fast_ema_period": 20,
+    "slow_ema_period": 50,
+    "adx_period": 14,
+    "adx_threshold": 20.0,
+    "atr_period": 14,
+    "atr_stop_multiplier": 2.0,
+    "atr_tp_multiplier": 4.0,
+    "trailing_stop_pct": 0.025
+  },
+  "cost_assumptions": {
+    "slippage_bps": 5,
+    "commission_bps": 10
+  },
+  "candidate_count": 9,
+  "completed_trials": 1,
+  "failed_trials": 0,
+  "abandoned_trials": 0,
+  "random_seed": 42,
+  "return_frequency": "1h",
+  "validation_results": {
+    "metrics": {
+      "initial_capital": 100000.0,
+      "final_capital": 93178.85927338898,
+      "total_return_pct": -6.821140726611017,
+      "cagr_pct": -1.426693603448037,
+      "sharpe_ratio": -1.605730916065947,
+      "sortino_ratio": -0.1551457594509543,
+      "calmar_ratio": -0.2037771245962209,
+      "max_drawdown_pct": 7.001245141106949,
+      "max_drawdown_duration_bars": 43040,
+      "total_trades": 272,
+      "win_rate": 0.48161764705882354,
+      "profit_factor": 0.4449275330426677,
+      "avg_win_usd": 41.73739214373375,
+      "avg_loss_usd": 87.15417799603097,
+      "expectancy_usd": -25.07772325960017,
+      "avg_r_multiple": -0.05015544651920034,
+      "var_95_pct": 0.0,
+      "var_99_pct": 0.0,
+      "cvar_95_pct": 0.000298314861455479,
+      "cvar_99_pct": 0.000298314861455479,
+      "skewness": -2.0803059244126665,
+      "kurtosis": 2203.0365811826573,
+      "exposure_pct": 0.6315447305486545,
+      "annualized_turnover": 0.0,
+      "simulated_years": 4.916552511415525
+    },
+    "robustness": {
+      "baseline": {
+        "sharpe": -1.605730916065947,
+        "total_return_pct": -6.821140726611017,
+        "max_dd_pct": 7.001245141106949,
+        "trades": 272
+      },
+      "cost_stress_2x": {
+        "sharpe": -3.1582220931072857,
+        "total_return_pct": -14.473802326842911,
+        "max_dd_pct": 14.473802326842911,
+        "trades": 272
+      },
+      "latency_stress_1bar": {
+        "sharpe": -1.2295067534338662,
+        "total_return_pct": -5.767776585000537,
+        "max_dd_pct": 6.0271136242395205,
+        "trades": 272
+      },
+      "missed_trades_10pct": {
+        "sharpe": -1.402705434034941,
+        "total_return_pct": -5.605238866771717,
+        "max_dd_pct": 5.866901307883206,
+        "trades": 243
+      },
+      "subperiod_first_half": {
+        "sharpe": -2.1322323660561247,
+        "total_return_pct": -4.826154734950542,
+        "max_dd_pct": 5.069196102220696,
+        "trades": 136
+      },
+      "subperiod_second_half": {
+        "sharpe": -1.0899675446246682,
+        "total_return_pct": -2.262353613674408,
+        "max_dd_pct": 2.262353613674408,
+        "trades": 138
+      }
+    },
+    "regimes": {
+      "CALM": {
+        "trades": 6,
+        "wins": 6,
+        "pnl_usd": 61.577770023928394,
+        "win_rate": 1.0
+      },
+      "NORMAL": {
+        "trades": 261,
+        "wins": 120,
+        "pnl_usd": -6903.443312680479,
+        "win_rate": 0.45977011494252873
+      },
+      "HIGH": {
+        "trades": 5,
+        "wins": 5,
+        "pnl_usd": 20.72481604530906,
+        "win_rate": 1.0
+      },
+      "TRENDING": {
+        "trades": 12,
+        "wins": 10,
+        "pnl_usd": 86.382075357073,
+        "win_rate": 0.8333333333333334
+      },
+      "RANGING": {
+        "trades": 260,
+        "wins": 121,
+        "pnl_usd": -6907.522801968314,
+        "win_rate": 0.4653846153846154
+      }
+    }
+  }
+}

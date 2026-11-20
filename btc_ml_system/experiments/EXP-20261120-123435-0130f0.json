@@ -1,0 +1,141 @@
+{
+  "experiment_id": "EXP-20261120-123435-0130f0",
+  "git_commit": "c92cb3338dc13bee6693b8a15b2e69299c4fc5e2",
+  "created_at": "2026-11-20T12:34:35.570098+00:00",
+  "strategy_name": "Bollinger Band Deviation (20, 2.5 std) with RSI Oversold & Mean Reversion Exit",
+  "strategy_version": "1.0.0",
+  "asset": "MULTI_ASSET",
+  "timeframe": "1h_4h",
+  "dataset_info": {
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "TSLA",
+      "AMZN",
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "date_range": "2024-2026",
+    "n_assets": 7
+  },
+  "dataset_identity": "['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'BTCUSDT', 'ETHUSDT']",
+  "dataset_date_range": "2024-2026",
+  "parameter_config": {
+    "bb_period": 20,
+    "bb_std": 2.5,
+    "rsi_period": 14,
+    "rsi_oversold": 28.0,
+    "atr_period": 14,
+    "atr_stop_multiplier": 1.5
+  },
+  "cost_assumptions": {
+    "slippage_bps": 5,
+    "commission_bps": 10
+  },
+  "candidate_count": 9,
+  "completed_trials": 1,
+  "failed_trials": 0,
+  "abandoned_trials": 0,
+  "random_seed": 42,
+  "return_frequency": "1h",
+  "validation_results": {
+    "metrics": {
+      "initial_capital": 100000.0,
+      "final_capital": 92569.43210018036,
+      "total_return_pct": -7.430567899819638,
+      "cagr_pct": -1.558166853701648,
+      "sharpe_ratio": -1.235372609429167,
+      "sortino_ratio": -0.12571426966648927,
+      "calmar_ratio": -0.15202728103641533,
+      "max_drawdown_pct": 10.249258179710639,
+      "max_drawdown_duration_bars": 42886,
+      "total_trades": 270,
+      "win_rate": 0.5,
+      "profit_factor": 0.5892349493991444,
+      "avg_win_usd": 78.95565701217494,
+      "avg_loss_usd": 133.99690071454134,
+      "expectancy_usd": -27.5206218511832,
+      "avg_r_multiple": -0.0550412437023664,
+      "var_95_pct": 0.0,
+      "var_99_pct": 0.0,
+      "cvar_95_pct": 0.00045386789880100134,
+      "cvar_99_pct": 0.00045386789880100134,
+      "skewness": -9.573755031740136,
+      "kurtosis": 771.7763542883623,
+      "exposure_pct": 0.6269010192946203,
+      "annualized_turnover": 0.0,
+      "simulated_years": 4.916552511415525
+    },
+    "robustness": {
+      "baseline": {
+        "sharpe": -1.235372609429167,
+        "total_return_pct": -7.430567899819638,
+        "max_dd_pct": 10.249258179710639,
+        "trades": 270
+      },
+      "cost_stress_2x": {
+        "sharpe": -2.5138544041527107,
+        "total_return_pct": -15.656945555284649,
+        "max_dd_pct": 17.415851899047354,
+        "trades": 270
+      },
+      "latency_stress_1bar": {
+        "sharpe": -1.0136492040413625,
+        "total_return_pct": -6.011361843751045,
+        "max_dd_pct": 6.7935998977425065,
+        "trades": 266
+      },
+      "missed_trades_10pct": {
+        "sharpe": -1.3197770622124483,
+        "total_return_pct": -7.678690268451857,
+        "max_dd_pct": 10.196407413149398,
+        "trades": 243
+      },
+      "subperiod_first_half": {
+        "sharpe": -2.1264763038687082,
+        "total_return_pct": -6.619402071076896,
+        "max_dd_pct": 6.882842528883105,
+        "trades": 120
+      },
+      "subperiod_second_half": {
+        "sharpe": -0.27280168377047903,
+        "total_return_pct": -0.8348239433343551,
+        "max_dd_pct": 3.854351140521016,
+        "trades": 149
+      }
+    },
+    "regimes": {
+      "CALM": {
+        "trades": 4,
+        "wins": 4,
+        "pnl_usd": 67.08043134663886,
+        "win_rate": 1.0
+      },
+      "NORMAL": {
+        "trades": 256,
+        "wins": 122,
+        "pnl_usd": -8187.891096387452,
+        "win_rate": 0.4765625
+      },
+      "HIGH": {
+        "trades": 10,
+        "wins": 9,
+        "pnl_usd": 690.2427652213612,
+        "win_rate": 0.9
+      },
+      "TRENDING": {
+        "trades": 13,
+        "wins": 13,
+        "pnl_usd": 747.3927393498798,
+        "win_rate": 1.0
+      },
+      "RANGING": {
+        "trades": 257,
+        "wins": 122,
+        "pnl_usd": -8177.960639169333,
+        "win_rate": 0.47470817120622566
+      }
+    }
+  }
+}

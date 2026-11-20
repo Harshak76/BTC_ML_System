@@ -41,27 +41,33 @@ class TsMomBreakoutStrategy(BaseResearchStrategy):
 
     @property
     def metadata(self) -> StrategyMetadata:
+        strat_id = self.config.get("strategy_id", "RS_MOM_TSMOM_BREAKOUT_V1")
+        version = self.config.get("version", "1.0.0")
+        strat_name = self.config.get(
+            "strategy_name",
+            f"Time-Series Momentum with Donchian ({self.channel_entry_period}) Breakout & RSI Exhaustion Filter"
+        )
         return StrategyMetadata(
-            strategy_id="RS_MOM_TSMOM_BREAKOUT_V1",
-            strategy_name="Time-Series Momentum with Donchian Breakout & RSI Exhaustion Filter",
+            strategy_id=strat_id,
+            strategy_name=strat_name,
             family=StrategyFamily.MOMENTUM,
-            version="1.0.0",
+            version=version,
             author="Quantitative Research Lab",
             description=(
-                "Captures intermediate momentum breakouts using 20-bar Donchian channel highs "
-                "with an RSI exhaustion ceiling filter and trailing 10-bar channel exit."
+                f"Captures intermediate momentum breakouts using {self.channel_entry_period}-bar Donchian channel highs "
+                "with an RSI exhaustion ceiling filter and trailing channel exit."
             ),
             supported_assets=["BTCUSDT", "ETHUSDT", "AAPL", "MSFT", "NVDA", "TSLA", "AMZN"],
             supported_timeframes=["1h", "4h", "1d"],
             parameters_schema={
-                "channel_entry_period": 20,
-                "channel_exit_period": 10,
-                "mom_period": 20,
-                "rsi_period": 14,
-                "rsi_max_entry": 75.0,
-                "atr_period": 14,
-                "atr_stop_multiplier": 2.0,
-                "atr_tp_multiplier": 4.5
+                "channel_entry_period": self.channel_entry_period,
+                "channel_exit_period": self.channel_exit_period,
+                "mom_period": self.mom_period,
+                "rsi_period": self.rsi_period,
+                "rsi_max_entry": self.rsi_max_entry,
+                "atr_period": self.atr_period,
+                "atr_stop_multiplier": self.atr_stop_multiplier,
+                "atr_tp_multiplier": self.atr_tp_multiplier
             }
         )
 

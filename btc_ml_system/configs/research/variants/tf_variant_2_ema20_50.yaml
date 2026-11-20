@@ -1,0 +1,22 @@
+strategy_id: "RS_TF_DUAL_EMA_20_50_V1"
+strategy_name: "Dual EMA Crossover (20/50) with ATR Channel & Trailing Stop"
+family: "trend_following"
+version: "1.0.0"
+description: "Captures medium-term directional trends using Fast 20 / Slow 50 EMA crossovers with ADX confirmation."
+parameters:
+  fast_ema_period: 20
+  slow_ema_period: 50
+  adx_period: 14
+  adx_threshold: 20.0
+  atr_period: 14
+  atr_stop_multiplier: 2.0
+  atr_tp_multiplier: 4.0
+  trailing_stop_pct: 0.025
+execution_assumptions:
+  slippage_bps_crypto: 5.0
+  slippage_bps_equity: 2.0
+  commission_bps_crypto: 10.0
+  commission_bps_equity: 0.0
+  execution_timing: "next_bar_open"
+  enforce_completed_candles: true
+  expected_return_unit: "percentage_points"

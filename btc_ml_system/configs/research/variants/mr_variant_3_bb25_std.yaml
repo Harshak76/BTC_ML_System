@@ -1,0 +1,20 @@
+strategy_id: "RS_MR_BB_RSI_25_STD_V1"
+strategy_name: "Bollinger Bands (20, 2.5 std) RSI Mean Reversion"
+family: "mean_reversion"
+version: "1.0.0"
+description: "Exploits extreme statistical mean reversion when price pierces 2.5 std lower Bollinger Band under oversold RSI."
+parameters:
+  bb_period: 20
+  bb_std: 2.5
+  rsi_period: 14
+  rsi_oversold: 28.0
+  atr_period: 14
+  atr_stop_multiplier: 1.5
+execution_assumptions:
+  slippage_bps_crypto: 5.0
+  slippage_bps_equity: 2.0
+  commission_bps_crypto: 10.0
+  commission_bps_equity: 0.0
+  execution_timing: "next_bar_open"
+  enforce_completed_candles: true
+  expected_return_unit: "percentage_points"
