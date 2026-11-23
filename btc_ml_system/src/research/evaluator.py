@@ -49,19 +49,43 @@ class ResearchEvaluator:
         initial_capital: float = 100000.0,
         random_seed: int = 42
     ):
-        base_dir = Path(__file__).resolve().parent.parent.parent
         if data_dir:
-            self.data_dir = Path(data_dir)
+            resolved = Path(data_dir).resolve()
+            if not resolved.exists():
+                raise FileNotFoundError(f"Explicitly specified data_dir does not exist: {resolved}")
+            self.data_dir = resolved
         else:
-            auth_dir = base_dir / "data" / "authentic_raw"
-            if auth_dir.exists() and any(auth_dir.glob("*.csv")):
-                self.data_dir = auth_dir
-            elif (base_dir / "data" / "raw").exists():
-                self.data_dir = base_dir / "data" / "raw"
-            elif (base_dir.parent / "data" / "raw").exists():
-                self.data_dir = base_dir.parent / "data" / "raw"
-            else:
-                self.data_dir = base_dir / "data" / "raw"
+            # Reliably locate the authentic dataset directory from repository roots and working directories
+            evaluator_path = Path(__file__).resolve()
+            possible_roots = [
+                Path.cwd(),                                # Current working directory
+                evaluator_path.parents[3],                 # Repository root (BTC_ML_System)
+                evaluator_path.parent.parent.parent,       # Package root (btc_ml_system)
+            ]
+            found_auth_dir = None
+            for r in possible_roots:
+                cand = r / "data" / "authentic_raw"
+                if cand.exists() and any(cand.glob("*.csv")):
+                    found_auth_dir = cand.resolve()
+                    break
+
+            if found_auth_dir is None:
+                for parent in evaluator_path.parents:
+                    cand = parent / "data" / "authentic_raw"
+                    if cand.exists() and any(cand.glob("*.csv")):
+                        found_auth_dir = cand.resolve()
+                        break
+
+            if found_auth_dir is None:
+                raise FileNotFoundError(
+                    "Authentic data directory 'data/authentic_raw' could not be resolved from working directory "
+                    f"({Path.cwd()}) or repository structure. Silent fallback to legacy cloned data in 'data/raw' "
+                    "is strictly forbidden."
+                )
+
+            self.data_dir = found_auth_dir
+
+        logger.info(f"Resolved authentic data directory: {self.data_dir.resolve()}")
 
         self.initial_capital = initial_capital
         self.random_seed = random_seed
@@ -120,6 +144,36 @@ class ResearchEvaluator:
 
         df = df.dropna(subset=["open", "high", "low", "close", "volume"]).reset_index(drop=True)
         return df
+
+    def validate_dataset(
+        self,
+        data_dict: Dict[str, pd.DataFrame],
+        expected_symbols: Optional[List[str]] = None
+    ) -> bool:
+        """
+        Validates that all expected symbols are present and contain valid OHLCV columns
+        with zero missing or corrupted values prior to simulation execution.
+        """
+        expected = expected_symbols or self.ALL_ASSETS
+        missing = [sym for sym in expected if sym not in data_dict]
+        if missing:
+            raise ValueError(
+                f"Universe validation failed: missing expected assets {missing}. "
+                f"Loaded assets: {list(data_dict.keys())}"
+            )
+
+        required_cols = ["open_time", "open", "high", "low", "close", "volume"]
+        for sym, df in data_dict.items():
+            if df is None or len(df) == 0:
+                raise ValueError(f"Universe validation failed: asset {sym} contains empty DataFrame.")
+            missing_cols = [c for c in required_cols if c not in df.columns]
+            if missing_cols:
+                raise ValueError(f"Universe validation failed for {sym}: missing required columns {missing_cols}.")
+            null_count = int(df[required_cols].isnull().sum().sum())
+            if null_count > 0:
+                raise ValueError(f"Universe validation failed for {sym}: {null_count} null values found in OHLCV columns.")
+
+        return True
 
     def compute_buy_and_hold_benchmark(
         self,
@@ -536,11 +590,11 @@ class ResearchEvaluator:
         # 1. Load Data for all assets
         data_dict = {}
         for sym in target_assets:
-            try:
-                data_dict[sym] = self.load_asset_data(sym)
-                logger.info(f"Loaded {sym}: {len(data_dict[sym])} bars.")
-            except Exception as e:
-                logger.warning(f"Could not load data for {sym}: {e}")
+            data_dict[sym] = self.load_asset_data(sym)
+            logger.info(f"Loaded {sym}: {len(data_dict[sym])} bars.")
+
+        # Validate universe dataset integrity before simulation
+        self.validate_dataset(data_dict, expected_symbols=target_assets)
 
         # 2. Benchmarks for each asset
         benchmarks = {}
