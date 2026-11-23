@@ -1,0 +1,159 @@
+{
+  "experiment_id": "EXP-20261123-121959-480f92",
+  "git_commit": "6a9943b40107fb8eab4298fb57c50c56fddf1978",
+  "created_at": "2026-11-23T12:20:00.037728+00:00",
+  "strategy_name": "Dual EMA Crossover (50/100) with ATR Channel & Trailing Stop",
+  "strategy_version": "1.0.0",
+  "asset": "MULTI_ASSET",
+  "timeframe": "1h_4h",
+  "dataset_info": {
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "TSLA",
+      "AMZN",
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "date_range": "2024-2026",
+    "n_assets": 7
+  },
+  "dataset_identity": "['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'BTCUSDT', 'ETHUSDT']",
+  "dataset_date_range": "2024-2026",
+  "parameter_config": {
+    "fast_ema_period": 50,
+    "slow_ema_period": 100,
+    "adx_period": 14,
+    "adx_threshold": 20.0,
+    "atr_period": 14,
+    "atr_stop_multiplier": 2.0,
+    "atr_tp_multiplier": 4.0,
+    "trailing_stop_pct": 0.025
+  },
+  "cost_assumptions": {
+    "slippage_bps": 5,
+    "commission_bps": 10
+  },
+  "candidate_count": 9,
+  "completed_trials": 1,
+  "failed_trials": 0,
+  "abandoned_trials": 0,
+  "random_seed": 42,
+  "return_frequency": "1h",
+  "validation_results": {
+    "metrics": {
+      "initial_capital": 100000.0,
+      "final_capital": 94055.38783621206,
+      "total_return_pct": -5.944612163787941,
+      "cagr_pct": -2.594367907266959,
+      "sharpe_ratio": -1.335914451067662,
+      "sortino_ratio": -0.21191187235445716,
+      "calmar_ratio": -0.3469983839894791,
+      "max_drawdown_pct": 7.476599393458903,
+      "max_drawdown_duration_bars": 19377,
+      "total_trades": 293,
+      "win_rate": 0.43686006825938567,
+      "profit_factor": 0.7081198328205838,
+      "avg_win_usd": 112.67192854678154,
+      "avg_loss_usd": 123.43405465318766,
+      "expectancy_usd": -20.28877871599976,
+      "avg_r_multiple": -0.04057755743199952,
+      "var_95_pct": 0.0,
+      "var_99_pct": 0.0,
+      "cvar_95_pct": 0.0010081661447132587,
+      "cvar_99_pct": 0.0010081661447132587,
+      "skewness": -3.843652496359834,
+      "kurtosis": 414.6192287262073,
+      "exposure_pct": 1.4345867606737173,
+      "annualized_turnover": 0.0,
+      "simulated_years": 2.3315068493150686
+    },
+    "robustness": {
+      "baseline": {
+        "sharpe": -1.335914451067662,
+        "total_return_pct": -5.944612163787941,
+        "max_dd_pct": 7.476599393458903,
+        "trades": 293
+      },
+      "cost_stress_2x": {
+        "sharpe": -2.6116959510504403,
+        "total_return_pct": -11.53366333871834,
+        "max_dd_pct": 12.755187527698144,
+        "trades": 293
+      },
+      "latency_stress_1bar": {
+        "sharpe": -1.1015343575590046,
+        "total_return_pct": -5.198591297361737,
+        "max_dd_pct": 6.256988721060985,
+        "trades": 291
+      },
+      "missed_trades_10pct": {
+        "sharpe": -1.708429296679378,
+        "total_return_pct": -6.662928947643726,
+        "max_dd_pct": 7.43205466102498,
+        "trades": 260
+      },
+      "subperiod_first_half": {
+        "sharpe": -1.9333551968955707,
+        "total_return_pct": -4.802611955644606,
+        "max_dd_pct": 6.507678967110151,
+        "trades": 149
+      },
+      "subperiod_second_half": {
+        "sharpe": -0.4712423512613052,
+        "total_return_pct": -1.0697449852633873,
+        "max_dd_pct": 1.6353977719172508,
+        "trades": 145
+      }
+    },
+    "regimes": {
+      "CALM": {
+        "trades": 82,
+        "wins": 36,
+        "pnl_usd": -391.6149786635854,
+        "win_rate": 0.43902439024390244
+      },
+      "NORMAL": {
+        "trades": 104,
+        "wins": 49,
+        "pnl_usd": -740.8589762888716,
+        "win_rate": 0.47115384615384615
+      },
+      "HIGH": {
+        "trades": 107,
+        "wins": 43,
+        "pnl_usd": -4812.138208835472,
+        "win_rate": 0.40186915887850466
+      },
+      "TRENDING": {
+        "trades": 261,
+        "wins": 114,
+        "pnl_usd": -5012.472659764573,
+        "win_rate": 0.4367816091954023
+      },
+      "RANGING": {
+        "trades": 4,
+        "wins": 2,
+        "pnl_usd": 126.89961494995683,
+        "win_rate": 0.5
+      },
+      "NEUTRAL": {
+        "trades": 28,
+        "wins": 12,
+        "pnl_usd": -1059.0391189733139,
+        "win_rate": 0.42857142857142855
+      },
+      "WARMUP_UNCLASSIFIED": {
+        "trades": 0,
+        "wins": 0,
+        "pnl_usd": 0.0,
+        "win_rate": 0.0
+      },
+      "total_trades_evaluated": 293,
+      "matched_trades_count": 293,
+      "unmatched_trades_count": 0,
+      "unmatched_trades": []
+    }
+  }
+}

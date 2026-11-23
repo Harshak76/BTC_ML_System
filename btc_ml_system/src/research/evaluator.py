@@ -50,12 +50,18 @@ class ResearchEvaluator:
         random_seed: int = 42
     ):
         base_dir = Path(__file__).resolve().parent.parent.parent
-        self.data_dir = Path(data_dir) if data_dir else (base_dir / "data" / "raw")
-        if not self.data_dir.exists():
-            # Fallback to parent data/raw if running from nested directory
-            parent_data = base_dir.parent / "data" / "raw"
-            if parent_data.exists():
-                self.data_dir = parent_data
+        if data_dir:
+            self.data_dir = Path(data_dir)
+        else:
+            auth_dir = base_dir / "data" / "authentic_raw"
+            if auth_dir.exists() and any(auth_dir.glob("*.csv")):
+                self.data_dir = auth_dir
+            elif (base_dir / "data" / "raw").exists():
+                self.data_dir = base_dir / "data" / "raw"
+            elif (base_dir.parent / "data" / "raw").exists():
+                self.data_dir = base_dir.parent / "data" / "raw"
+            else:
+                self.data_dir = base_dir / "data" / "raw"
 
         self.initial_capital = initial_capital
         self.random_seed = random_seed
@@ -265,14 +271,14 @@ class ResearchEvaluator:
             "equity_curve": equity_curve
         }
 
-    def evaluate_regimes(
+    def compute_asset_regime_features(
         self,
         df: pd.DataFrame,
-        trades: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        rolling_window: int = 250
+    ) -> pd.DataFrame:
         """
-        Classifies historical market into volatility and directional regimes without lookahead,
-        and aggregates strategy trade performance across each regime.
+        Classifies historical market into volatility and directional regimes independently for an asset.
+        Guarantees zero full-sample lookahead by using strictly backward-looking rolling quantiles.
         """
         out = df.copy()
         close = out["close"]
@@ -282,12 +288,16 @@ class ResearchEvaluator:
         # 1. Volatility Regime: 20-period ATR normalized by price
         tr = pd.concat([high - low, (high - close.shift(1)).abs(), (low - close.shift(1)).abs()], axis=1).max(axis=1)
         norm_vol = (tr.rolling(20).mean() / (close + 1e-12)) * 100.0
-        p33 = float(norm_vol.quantile(0.33))
-        p67 = float(norm_vol.quantile(0.67))
 
-        vol_regimes = pd.Series("NORMAL", index=out.index)
-        vol_regimes[norm_vol <= p33] = "CALM"
-        vol_regimes[norm_vol > p67] = "HIGH"
+        # Point-in-time rolling quantiles (strictly backward-looking, zero lookahead)
+        min_p = min(20, max(5, len(out) // 4))
+        p33_series = norm_vol.rolling(rolling_window, min_periods=min_p).quantile(0.33)
+        p67_series = norm_vol.rolling(rolling_window, min_periods=min_p).quantile(0.67)
+
+        vol_regimes = pd.Series("NORMAL", index=out.index, dtype=object)
+        vol_regimes[norm_vol <= p33_series] = "CALM"
+        vol_regimes[norm_vol > p67_series] = "HIGH"
+        vol_regimes[norm_vol.isna() | p33_series.isna()] = "WARMUP_UNCLASSIFIED"
 
         # 2. Directional Regime: 14-period ADX
         up_move = high - high.shift(1)
@@ -300,31 +310,85 @@ class ResearchEvaluator:
         dx = 100.0 * (plus_di - minus_di).abs() / ((plus_di + minus_di) + 1e-12)
         adx = dx.rolling(14).mean()
 
-        dir_regimes = pd.Series("RANGING", index=out.index)
+        dir_regimes = pd.Series("NEUTRAL", index=out.index, dtype=object)
+        dir_regimes[adx < 20.0] = "RANGING"
         dir_regimes[adx >= 25.0] = "TRENDING"
+        dir_regimes[adx.isna()] = "WARMUP_UNCLASSIFIED"
 
         out["vol_regime"] = vol_regimes
         out["dir_regime"] = dir_regimes
         out["dt_str"] = out["open_time"].astype(str)
-        regime_map = out.set_index("dt_str")[["vol_regime", "dir_regime"]].to_dict(orient="index")
+        return out
 
-        # Aggregate trades by regime
+    def evaluate_regimes(
+        self,
+        data: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+        trades: List[Dict[str, Any]],
+        rolling_window: int = 250
+    ) -> Dict[str, Any]:
+        """
+        Classifies market into point-in-time volatility and directional regimes per asset,
+        and aggregates strategy trade performance across each regime using composite key (asset, entry_time).
+        Does NOT default unmatched trades to RANGING or NORMAL.
+        """
+        if isinstance(data, pd.DataFrame):
+            data_dict = {"DEFAULT": data}
+        elif isinstance(data, dict):
+            data_dict = data
+        else:
+            raise TypeError("data must be a pd.DataFrame or Dict[str, pd.DataFrame]")
+
+        # Build composite regime map: (symbol, entry_time_str) -> {vol_regime, dir_regime, feature_time}
+        composite_regime_map: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        for sym, df_raw in data_dict.items():
+            features_df = self.compute_asset_regime_features(df_raw, rolling_window=rolling_window)
+            for _, row in features_df.iterrows():
+                ts_str = str(row["dt_str"])
+                composite_regime_map[(sym, ts_str)] = {
+                    "vol_regime": row["vol_regime"],
+                    "dir_regime": row["dir_regime"],
+                    "feature_time": ts_str
+                }
+                if len(data_dict) == 1:
+                    composite_regime_map[("DEFAULT", ts_str)] = composite_regime_map[(sym, ts_str)]
+
         regime_stats = {
             "CALM": {"trades": 0, "wins": 0, "pnl_usd": 0.0},
             "NORMAL": {"trades": 0, "wins": 0, "pnl_usd": 0.0},
             "HIGH": {"trades": 0, "wins": 0, "pnl_usd": 0.0},
             "TRENDING": {"trades": 0, "wins": 0, "pnl_usd": 0.0},
-            "RANGING": {"trades": 0, "wins": 0, "pnl_usd": 0.0}
+            "RANGING": {"trades": 0, "wins": 0, "pnl_usd": 0.0},
+            "NEUTRAL": {"trades": 0, "wins": 0, "pnl_usd": 0.0},
+            "WARMUP_UNCLASSIFIED": {"trades": 0, "wins": 0, "pnl_usd": 0.0}
         }
+
+        matched_trades = 0
+        unmatched_trades = []
 
         for t in trades:
             e_time = str(t.get("entry_time", ""))
+            sym = t.get("symbol") or t.get("asset") or "DEFAULT"
             pnl = float(t.get("pnl_usd", 0.0))
             is_win = pnl > 0
 
-            info = regime_map.get(e_time, {})
-            v_reg = info.get("vol_regime", "NORMAL")
-            d_reg = info.get("dir_regime", "RANGING")
+            # Match on composite key (asset, entry_timestamp)
+            key = (sym, e_time)
+            info = composite_regime_map.get(key)
+            if info is None and len(data_dict) == 1:
+                info = composite_regime_map.get(("DEFAULT", e_time))
+
+            if info is None:
+                # Explicit unmatched handling - DO NOT default to RANGING or NORMAL
+                unmatched_trades.append({
+                    "symbol": sym,
+                    "entry_time": e_time,
+                    "pnl_usd": pnl
+                })
+                continue
+
+            matched_trades += 1
+            v_reg = info["vol_regime"]
+            d_reg = info["dir_regime"]
 
             for reg in (v_reg, d_reg):
                 if reg in regime_stats:
@@ -336,6 +400,11 @@ class ResearchEvaluator:
         # Calculate win rates
         for reg, st in regime_stats.items():
             st["win_rate"] = (st["wins"] / st["trades"]) if st["trades"] > 0 else 0.0
+
+        regime_stats["total_trades_evaluated"] = len(trades)
+        regime_stats["matched_trades_count"] = matched_trades
+        regime_stats["unmatched_trades_count"] = len(unmatched_trades)
+        regime_stats["unmatched_trades"] = unmatched_trades
 
         return regime_stats
 
@@ -511,9 +580,8 @@ class ResearchEvaluator:
                 }
                 asset_level_results.setdefault(sym, {})[strat_id] = single_res["metrics"]
 
-            # C. Regime Analysis (using crypto/equity dominant dataset)
-            sample_df = list(data_dict.values())[0]
-            regimes = self.evaluate_regimes(sample_df, sim_res["trades"])
+            # C. Regime Analysis (using multi-asset dataset with composite (asset, timestamp) key)
+            regimes = self.evaluate_regimes(data_dict, sim_res["trades"])
 
             # D. Calendar Period Breakdown
             calendar = self.evaluate_calendar_periods(sim_res["trades"], sim_res["equity_curve"])

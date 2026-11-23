@@ -1,0 +1,74 @@
+{
+  "provider": "Alpaca Market Data API v2",
+  "retrieval_timestamp": "2026-11-23T11:44:54.417480+00:00",
+  "timeframe": "1h",
+  "adjustment": "split",
+  "timezone": "UTC",
+  "symbols": {
+    "AAPL": {
+      "symbol": "AAPL",
+      "filename": "aapl_1h.csv",
+      "row_count": 10871,
+      "start_time": "2024-01-02 13:00:00+00:00",
+      "end_time": "2026-09-18 21:00:00+00:00",
+      "initial_close": 188.1,
+      "terminal_close": 334.78,
+      "sha256": "7f962cb00edd8daa9ebd7076f26dbfc9efc5ac83b133677bc9cd113920e5f1b5",
+      "duplicates_removed": 0,
+      "corporate_action_treatment": "split_adjusted",
+      "validation_status": "ACQUIRED_AUTHENTIC"
+    },
+    "MSFT": {
+      "symbol": "MSFT",
+      "filename": "msft_1h.csv",
+      "row_count": 10870,
+      "start_time": "2024-01-02 13:00:00+00:00",
+      "end_time": "2026-09-18 21:00:00+00:00",
+      "initial_close": 373.3007,
+      "terminal_close": 494.925,
+      "sha256": "a31f7da2c646813aedac0d86433fe4ef5cbf0a7aab5bae0870d1064b4b862dc0",
+      "duplicates_removed": 0,
+      "corporate_action_treatment": "split_adjusted",
+      "validation_status": "ACQUIRED_AUTHENTIC"
+    },
+    "NVDA": {
+      "symbol": "NVDA",
+      "filename": "nvda_1h.csv",
+      "row_count": 10871,
+      "start_time": "2024-01-02 13:00:00+00:00",
+      "end_time": "2026-09-18 21:00:00+00:00",
+      "initial_close": 49.33,
+      "terminal_close": 222.29,
+      "sha256": "9b6cc86cabe1020e9c8b8b5036acdeaee85b7a1e7766f46b25eaebd1f20b32d7",
+      "duplicates_removed": 0,
+      "corporate_action_treatment": "split_adjusted",
+      "validation_status": "ACQUIRED_AUTHENTIC"
+    },
+    "TSLA": {
+      "symbol": "TSLA",
+      "filename": "tsla_1h.csv",
+      "row_count": 10871,
+      "start_time": "2024-01-02 13:00:00+00:00",
+      "end_time": "2026-09-18 21:00:00+00:00",
+      "initial_close": 250.69,
+      "terminal_close": 364.1899,
+      "sha256": "35bc0c748b9d642c25a13ad62094f793941e8f0e8b9d5fdd74cfa65ef899471d",
+      "duplicates_removed": 0,
+      "corporate_action_treatment": "split_adjusted",
+      "validation_status": "ACQUIRED_AUTHENTIC"
+    },
+    "AMZN": {
+      "symbol": "AMZN",
+      "filename": "amzn_1h.csv",
+      "row_count": 10871,
+      "start_time": "2024-01-02 13:00:00+00:00",
+      "end_time": "2026-09-18 21:00:00+00:00",
+      "initial_close": 150.67,
+      "terminal_close": 254.61,
+      "sha256": "bf9758b3d6976109620fb82cc8c4d331e1c18a28b453b9d83eb0a2f3b57f10c4",
+      "duplicates_removed": 0,
+      "corporate_action_treatment": "split_adjusted",
+      "validation_status": "ACQUIRED_AUTHENTIC"
+    }
+  }
+}

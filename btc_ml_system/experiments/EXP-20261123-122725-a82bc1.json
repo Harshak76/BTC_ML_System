@@ -1,0 +1,157 @@
+{
+  "experiment_id": "EXP-20261123-122725-a82bc1",
+  "git_commit": "6a9943b40107fb8eab4298fb57c50c56fddf1978",
+  "created_at": "2026-11-23T12:27:25.733398+00:00",
+  "strategy_name": "Bollinger Band Deviation (20, 2.0 std) with RSI Oversold & Mean Reversion Exit",
+  "strategy_version": "1.0.0",
+  "asset": "MULTI_ASSET",
+  "timeframe": "1h_4h",
+  "dataset_info": {
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "TSLA",
+      "AMZN",
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "date_range": "2024-2026",
+    "n_assets": 7
+  },
+  "dataset_identity": "['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'BTCUSDT', 'ETHUSDT']",
+  "dataset_date_range": "2024-2026",
+  "parameter_config": {
+    "bb_period": 20,
+    "bb_std": 2.0,
+    "rsi_period": 14,
+    "rsi_oversold": 32.0,
+    "atr_period": 14,
+    "atr_stop_multiplier": 1.5
+  },
+  "cost_assumptions": {
+    "slippage_bps": 5,
+    "commission_bps": 10
+  },
+  "candidate_count": 9,
+  "completed_trials": 1,
+  "failed_trials": 0,
+  "abandoned_trials": 0,
+  "random_seed": 42,
+  "return_frequency": "1h",
+  "validation_results": {
+    "metrics": {
+      "initial_capital": 100000.0,
+      "final_capital": 68527.16207097274,
+      "total_return_pct": -31.472837929027257,
+      "cagr_pct": -14.964483192029043,
+      "sharpe_ratio": -2.900456759172557,
+      "sortino_ratio": -0.9750744089789991,
+      "calmar_ratio": -0.44772180609995005,
+      "max_drawdown_pct": 33.42361928355205,
+      "max_drawdown_duration_bars": 19960,
+      "total_trades": 1680,
+      "win_rate": 0.430952380952381,
+      "profit_factor": 0.6985890646782863,
+      "avg_win_usd": 100.75349441452201,
+      "avg_loss_usd": 109.22423418947818,
+      "expectancy_usd": -18.73383210061143,
+      "avg_r_multiple": -0.03746766420122286,
+      "var_95_pct": 0.0,
+      "var_99_pct": 0.1869629682563103,
+      "cvar_95_pct": 0.006167682368644703,
+      "cvar_99_pct": 0.36159010212356785,
+      "skewness": -3.696406039510936,
+      "kurtosis": 303.1348314086809,
+      "exposure_pct": 8.225616921269095,
+      "annualized_turnover": 0.0,
+      "simulated_years": 2.3315068493150686
+    },
+    "robustness": {
+      "baseline": {
+        "sharpe": -2.900456759172557,
+        "total_return_pct": -31.472837929027257,
+        "max_dd_pct": 33.42361928355205,
+        "trades": 1680
+      },
+      "cost_stress_2x": {
+        "sharpe": -5.418845909239293,
+        "total_return_pct": -51.54799997753409,
+        "max_dd_pct": 52.73962469147088,
+        "trades": 1679
+      },
+      "latency_stress_1bar": {
+        "sharpe": -2.735682032008647,
+        "total_return_pct": -28.35030975536141,
+        "max_dd_pct": 29.40311626551633,
+        "trades": 1550
+      },
+      "missed_trades_10pct": {
+        "sharpe": -2.7657876434831064,
+        "total_return_pct": -29.10287899568281,
+        "max_dd_pct": 30.85322986423142,
+        "trades": 1513
+      },
+      "subperiod_first_half": {
+        "sharpe": -3.3158839594147986,
+        "total_return_pct": -22.23046558973713,
+        "max_dd_pct": 24.38022879890584,
+        "trades": 831
+      },
+      "subperiod_second_half": {
+        "sharpe": -2.1153836095117073,
+        "total_return_pct": -11.565363485065667,
+        "max_dd_pct": 13.285529198724294,
+        "trades": 849
+      }
+    },
+    "regimes": {
+      "CALM": {
+        "trades": 397,
+        "wins": 159,
+        "pnl_usd": -9753.89644949321,
+        "win_rate": 0.4005037783375315
+      },
+      "NORMAL": {
+        "trades": 494,
+        "wins": 220,
+        "pnl_usd": -5223.994452686098,
+        "win_rate": 0.44534412955465585
+      },
+      "HIGH": {
+        "trades": 786,
+        "wins": 344,
+        "pnl_usd": -16523.013264645502,
+        "win_rate": 0.43765903307888043
+      },
+      "TRENDING": {
+        "trades": 1456,
+        "wins": 629,
+        "pnl_usd": -28098.73580939392,
+        "win_rate": 0.4320054945054945
+      },
+      "RANGING": {
+        "trades": 88,
+        "wins": 43,
+        "pnl_usd": -518.4580813816729,
+        "win_rate": 0.48863636363636365
+      },
+      "NEUTRAL": {
+        "trades": 135,
+        "wins": 51,
+        "pnl_usd": -2936.2150179410364,
+        "win_rate": 0.37777777777777777
+      },
+      "WARMUP_UNCLASSIFIED": {
+        "trades": 4,
+        "wins": 2,
+        "pnl_usd": 108.63721748705859,
+        "win_rate": 0.5
+      },
+      "total_trades_evaluated": 1680,
+      "matched_trades_count": 1680,
+      "unmatched_trades_count": 0,
+      "unmatched_trades": []
+    }
+  }
+}

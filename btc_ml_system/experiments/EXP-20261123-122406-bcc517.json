@@ -1,0 +1,159 @@
+{
+  "experiment_id": "EXP-20261123-122406-bcc517",
+  "git_commit": "6a9943b40107fb8eab4298fb57c50c56fddf1978",
+  "created_at": "2026-11-23T12:24:06.717677+00:00",
+  "strategy_name": "Time-Series Momentum with Donchian (40) Breakout & RSI Exhaustion Filter",
+  "strategy_version": "1.0.0",
+  "asset": "MULTI_ASSET",
+  "timeframe": "1h_4h",
+  "dataset_info": {
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "TSLA",
+      "AMZN",
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "date_range": "2024-2026",
+    "n_assets": 7
+  },
+  "dataset_identity": "['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'BTCUSDT', 'ETHUSDT']",
+  "dataset_date_range": "2024-2026",
+  "parameter_config": {
+    "channel_entry_period": 40,
+    "channel_exit_period": 20,
+    "mom_period": 40,
+    "rsi_period": 14,
+    "rsi_max_entry": 75.0,
+    "atr_period": 14,
+    "atr_stop_multiplier": 2.0,
+    "atr_tp_multiplier": 4.5
+  },
+  "cost_assumptions": {
+    "slippage_bps": 5,
+    "commission_bps": 10
+  },
+  "candidate_count": 9,
+  "completed_trials": 1,
+  "failed_trials": 0,
+  "abandoned_trials": 0,
+  "random_seed": 42,
+  "return_frequency": "1h",
+  "validation_results": {
+    "metrics": {
+      "initial_capital": 100000.0,
+      "final_capital": 90428.58562095655,
+      "total_return_pct": -9.571414379043446,
+      "cagr_pct": -4.223443653331982,
+      "sharpe_ratio": -1.1075655015329515,
+      "sortino_ratio": -0.37356511051425323,
+      "calmar_ratio": -0.3195735691714618,
+      "max_drawdown_pct": 13.215872840428691,
+      "max_drawdown_duration_bars": 20326,
+      "total_trades": 913,
+      "win_rate": 0.41511500547645125,
+      "profit_factor": 0.8453026460750979,
+      "avg_win_usd": 137.99592184066816,
+      "avg_loss_usd": 115.86492276527504,
+      "expectancy_usd": -10.483476866422379,
+      "avg_r_multiple": -0.020966953732844757,
+      "var_95_pct": 0.0,
+      "var_99_pct": 0.12616318198300558,
+      "cvar_95_pct": 0.00349271815550979,
+      "cvar_99_pct": 0.24755115906451652,
+      "skewness": 0.9749438197428923,
+      "kurtosis": 112.0625402929505,
+      "exposure_pct": 4.470231100665884,
+      "annualized_turnover": 0.0,
+      "simulated_years": 2.3315068493150686
+    },
+    "robustness": {
+      "baseline": {
+        "sharpe": -1.1075655015329515,
+        "total_return_pct": -9.571414379043446,
+        "max_dd_pct": 13.215872840428691,
+        "trades": 913
+      },
+      "cost_stress_2x": {
+        "sharpe": -3.0670021891617236,
+        "total_return_pct": -24.5903701449098,
+        "max_dd_pct": 26.448317885737854,
+        "trades": 913
+      },
+      "latency_stress_1bar": {
+        "sharpe": -1.9341591209231248,
+        "total_return_pct": -14.110122011636719,
+        "max_dd_pct": 15.334631330820129,
+        "trades": 868
+      },
+      "missed_trades_10pct": {
+        "sharpe": -0.45645248670105476,
+        "total_return_pct": -3.9272576275724718,
+        "max_dd_pct": 9.376744452367717,
+        "trades": 829
+      },
+      "subperiod_first_half": {
+        "sharpe": -1.5810034372097914,
+        "total_return_pct": -7.740224447871384,
+        "max_dd_pct": 10.118385324771657,
+        "trades": 488
+      },
+      "subperiod_second_half": {
+        "sharpe": -0.5853005073978285,
+        "total_return_pct": -2.4778399139995453,
+        "max_dd_pct": 4.795851450454054,
+        "trades": 422
+      }
+    },
+    "regimes": {
+      "CALM": {
+        "trades": 243,
+        "wins": 89,
+        "pnl_usd": -4069.3260462973294,
+        "win_rate": 0.3662551440329218
+      },
+      "NORMAL": {
+        "trades": 320,
+        "wins": 130,
+        "pnl_usd": -3290.945569093022,
+        "win_rate": 0.40625
+      },
+      "HIGH": {
+        "trades": 350,
+        "wins": 160,
+        "pnl_usd": -2211.1427636532935,
+        "win_rate": 0.45714285714285713
+      },
+      "TRENDING": {
+        "trades": 640,
+        "wins": 272,
+        "pnl_usd": -1882.7518028621998,
+        "win_rate": 0.425
+      },
+      "RANGING": {
+        "trades": 149,
+        "wins": 61,
+        "pnl_usd": -2025.3352759502793,
+        "win_rate": 0.40939597315436244
+      },
+      "NEUTRAL": {
+        "trades": 124,
+        "wins": 46,
+        "pnl_usd": -5663.327300231163,
+        "win_rate": 0.3709677419354839
+      },
+      "WARMUP_UNCLASSIFIED": {
+        "trades": 0,
+        "wins": 0,
+        "pnl_usd": 0.0,
+        "win_rate": 0.0
+      },
+      "total_trades_evaluated": 913,
+      "matched_trades_count": 913,
+      "unmatched_trades_count": 0,
+      "unmatched_trades": []
+    }
+  }
+}
