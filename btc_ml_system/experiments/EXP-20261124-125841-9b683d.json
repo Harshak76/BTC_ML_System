@@ -1,0 +1,268 @@
+{
+  "experiment_id": "EXP-20261124-125841-9b683d",
+  "git_commit": "UNKNOWN_COMMIT",
+  "created_at": "2026-11-24T12:58:41.122325+00:00",
+  "strategy_name": "RS_MOM_DONCHIAN_40_4H_EMA_SLOPE",
+  "strategy_version": "2.0.0",
+  "asset": "MULTI_ASSET_PORTFOLIO",
+  "timeframe": "1H/4H",
+  "dataset_info": {
+    "source": "Alpaca v2 + Authentic Crypto Feeds",
+    "data_dir": "data/authentic_raw",
+    "assets": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "TSLA",
+      "AMZN",
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "date_range": "2024-01-02 to 2026-09-22",
+    "disclosure": "HISTORICAL EXPLORATORY EVALUATION \u2014 PRIOR DATASET INSPECTION DISCLOSED"
+  },
+  "dataset_identity": "MULTI_ASSET_PORTFOLIO",
+  "dataset_date_range": "2024-01-02 to 2026-09-22",
+  "parameter_config": {
+    "strategy_id": "RS_MOM_DONCHIAN_40_4H_EMA_SLOPE"
+  },
+  "cost_assumptions": {
+    "crypto_slippage_bps": 5.0,
+    "crypto_commission_bps": 10.0,
+    "equity_slippage_bps": 2.0,
+    "equity_commission_bps": 0.0,
+    "execution_timing": "next_bar_open",
+    "intrabar_collision": "conservative_stop_first",
+    "enforce_equity_sessions": true
+  },
+  "candidate_count": 3,
+  "completed_trials": 12,
+  "failed_trials": 0,
+  "abandoned_trials": 0,
+  "random_seed": 42,
+  "return_frequency": "1h",
+  "validation_results": {
+    "portfolio_metrics": {
+      "initial_capital": 100000.0,
+      "final_capital": 88680.18944267492,
+      "total_return_pct": -11.31981055732508,
+      "cagr_pct": -5.0221225105449125,
+      "sharpe_ratio": -1.439792763242668,
+      "sortino_ratio": -0.45273585510446474,
+      "calmar_ratio": -0.4017546716177305,
+      "max_drawdown_pct": 12.500470723395749,
+      "max_drawdown_duration_bars": 20326,
+      "total_trades": 813,
+      "win_rate": 0.4071340713407134,
+      "profit_factor": 0.7941972658614158,
+      "avg_win_usd": 131.9740098801669,
+      "avg_loss_usd": 114.11453906153643,
+      "expectancy_usd": -13.923506220572335,
+      "avg_r_multiple": -0.02784701244114467,
+      "var_95_pct": 0.0,
+      "var_99_pct": 0.10996669584588115,
+      "cvar_95_pct": 0.0031240423149937967,
+      "cvar_99_pct": 0.23370481185313868,
+      "skewness": 0.616204789094352,
+      "kurtosis": 128.76838538116004,
+      "exposure_pct": 3.9806110458284376,
+      "annualized_turnover": 0.0,
+      "simulated_years": 2.3315068493150686
+    },
+    "asset_level_metrics": {
+      "AAPL": {
+        "total_return_pct": -3.802335289899987,
+        "annualized_return_pct": 0.0,
+        "sharpe_ratio": -0.5039783076052833,
+        "sortino_ratio": -0.09570555784424346,
+        "calmar_ratio": -0.10288854337584913,
+        "max_drawdown_pct": 5.660964570454817,
+        "total_trades": 125,
+        "win_rate": 0.424,
+        "profit_factor": 0.7189431104530604,
+        "expectancy_usd": -30.41868231919969,
+        "final_equity": 96197.66471010001
+      },
+      "MSFT": {
+        "total_return_pct": -2.5567223757480826,
+        "annualized_return_pct": 0.0,
+        "sharpe_ratio": -0.302945580606369,
+        "sortino_ratio": -0.0605252608574868,
+        "calmar_ratio": -0.07820505388223054,
+        "max_drawdown_pct": 4.98124255590057,
+        "total_trades": 126,
+        "win_rate": 0.40476190476190477,
+        "profit_factor": 0.8309285571186538,
+        "expectancy_usd": -20.291447426571523,
+        "final_equity": 97443.27762425192
+      },
+      "NVDA": {
+        "total_return_pct": -0.8494272426415264,
+        "annualized_return_pct": 0.0,
+        "sharpe_ratio": -0.09206524091942915,
+        "sortino_ratio": -0.019125995311875983,
+        "calmar_ratio": -0.039492132658960906,
+        "max_drawdown_pct": 3.2529090068434185,
+        "total_trades": 124,
+        "win_rate": 0.43548387096774194,
+        "profit_factor": 0.9378451652395315,
+        "expectancy_usd": -6.8502196987227535,
+        "final_equity": 99150.57275735847
+      },
+      "TSLA": {
+        "total_return_pct": 1.7189094120396038,
+        "annualized_return_pct": 0.0,
+        "sharpe_ratio": 0.24573283546157218,
+        "sortino_ratio": 0.04295617405135158,
+        "calmar_ratio": 0.12146278391818464,
+        "max_drawdown_pct": 2.1171216254326066,
+        "total_trades": 86,
+        "win_rate": 0.5348837209302325,
+        "profit_factor": 1.2093548906908038,
+        "expectancy_usd": 19.987318744646018,
+        "final_equity": 101718.9094120396
+      },
+      "AMZN": {
+        "total_return_pct": -1.9571354424090532,
+        "annualized_return_pct": 0.0,
+        "sharpe_ratio": -0.24229832292842446,
+        "sortino_ratio": -0.04417682388558133,
+        "calmar_ratio": -0.06812988919546355,
+        "max_drawdown_pct": 4.365217481714341,
+        "total_trades": 118,
+        "win_rate": 0.4491525423728814,
+        "profit_factor": 0.8558236690012395,
+        "expectancy_usd": -16.585893579737487,
+        "final_equity": 98042.86455759095
+      },
+      "BTCUSDT": {
+        "total_return_pct": -3.870064784411923,
+        "annualized_return_pct": 0.0,
+        "sharpe_ratio": -2.958896584173052,
+        "sortino_ratio": -0.6238594722903318,
+        "calmar_ratio": -1.631859285766841,
+        "max_drawdown_pct": 4.6523750208393615,
+        "total_trades": 54,
+        "win_rate": 0.2962962962962963,
+        "profit_factor": 0.4576556349069,
+        "expectancy_usd": -71.66786637799841,
+        "final_equity": 96129.93521558808
+      },
+      "ETHUSDT": {
+        "total_return_pct": -6.502317935960542,
+        "annualized_return_pct": 0.0,
+        "sharpe_ratio": -1.4511661180558397,
+        "sortino_ratio": -0.278756966427998,
+        "calmar_ratio": -0.49642970181342083,
+        "max_drawdown_pct": 6.65952517815638,
+        "total_trades": 180,
+        "win_rate": 0.32222222222222224,
+        "profit_factor": 0.6331267099909017,
+        "expectancy_usd": -36.12398853311344,
+        "final_equity": 93497.68206403946
+      }
+    },
+    "dsr": {
+      "observed_sharpe": -1.439792763242668,
+      "n_trials": 12,
+      "n_observations": 20424,
+      "skewness": 0.6162047890943304,
+      "kurtosis": 128.76838538116016,
+      "expected_max_sharpe": 1.0080605443966053,
+      "psr": 0.014631970322169436,
+      "dsr": 0.00010521156549116883,
+      "p_value": 0.9998947884345089,
+      "interpretation": "Observed Sharpe = -1.44. Expected Max Sharpe under 12 trials = 1.01. DSR = 0.0%. Not statistically significant at 95% level. High probability of selection bias."
+    },
+    "bootstrap": {
+      "trade_ci_95": [
+        -20.40756016751626,
+        -2.248585071248533
+      ],
+      "prob_negative": 0.994,
+      "stationary_ci_95": [
+        -21.406220663206483,
+        -1.198475562509482
+      ]
+    },
+    "monte_carlo": {
+      "fee_stress_mean_ret": -19.1436783908665,
+      "shuffle_p95_maxdd": 14.500287319337609,
+      "slip_stress_mean_ret": -11.993672798368976
+    },
+    "walk_forward": [
+      {
+        "fold": 1,
+        "train_period": "2024-01-02 to 2024-10-13",
+        "test_period": "2024-10-13 to 2025-03-04",
+        "is_return_pct": -2.9235341818301825,
+        "oos_return_pct": -2.3377526141281995,
+        "is_sharpe": -1.9086884975151543,
+        "oos_sharpe": -1.5693895523581005,
+        "wfe": 0.8222345104511429,
+        "is_trades": 194,
+        "oos_trades": 124
+      },
+      {
+        "fold": 2,
+        "train_period": "2024-06-04 to 2024-12-23",
+        "test_period": "2024-12-23 to 2025-05-14",
+        "is_return_pct": -3.138157531850535,
+        "oos_return_pct": -2.0049048901743953,
+        "is_sharpe": -1.9482180311101571,
+        "oos_sharpe": -1.4670447176966328,
+        "wfe": 0.7530187557399126,
+        "is_trades": 187,
+        "oos_trades": 95
+      },
+      {
+        "fold": 3,
+        "train_period": "2024-10-13 to 2025-03-04",
+        "test_period": "2025-03-04 to 2025-07-24",
+        "is_return_pct": -2.3377526141281995,
+        "oos_return_pct": -4.580560511245057,
+        "is_sharpe": -1.5693895523581005,
+        "oos_sharpe": -3.439873049896517,
+        "wfe": 2.1918541796891056,
+        "is_trades": 124,
+        "oos_trades": 138
+      },
+      {
+        "fold": 4,
+        "train_period": "2024-12-23 to 2025-05-14",
+        "test_period": "2025-05-14 to 2025-10-03",
+        "is_return_pct": -2.0049048901743953,
+        "oos_return_pct": -3.5692353741233966,
+        "is_sharpe": -1.4670447176966328,
+        "oos_sharpe": -2.814072509970262,
+        "wfe": 1.918191365283371,
+        "is_trades": 95,
+        "oos_trades": 149
+      },
+      {
+        "fold": 5,
+        "train_period": "2025-03-04 to 2025-07-24",
+        "test_period": "2025-07-24 to 2025-12-12",
+        "is_return_pct": -4.580560511245057,
+        "oos_return_pct": -0.9542671688926202,
+        "is_sharpe": -3.439873049896517,
+        "oos_sharpe": -0.7525522160238634,
+        "wfe": 0.21877325270666678,
+        "is_trades": 138,
+        "oos_trades": 108
+      }
+    ],
+    "gate_evaluation": {
+      "gate_1_sharpe_gt_1": false,
+      "gate_2_maxdd_lt_20": true,
+      "gate_3_multi_asset_breadth": false,
+      "gate_4_dsr_p_lt_005": false,
+      "gate_5_bootstrap_ci_gt_0": false,
+      "gate_6_monte_carlo_survival": true,
+      "gate_7_zero_lookahead": true,
+      "gate_8_pbo_documented": true,
+      "gate_9_wfe_gt_05": false,
+      "overall_verdict": "REJECTED \u2014 NOT ELIGIBLE FOR PAPER TRADING"
+    }
+  }
+}
