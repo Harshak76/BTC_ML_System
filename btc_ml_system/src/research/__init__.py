@@ -17,6 +17,9 @@ from btc_ml_system.src.research.strategies import (
     DualEmaAtrTrendStrategy,
     TsMomBreakoutStrategy,
     BbRsiMeanReversionStrategy,
+    Donchian40ControlStrategy,
+    Donchian40AdxStrategy,
+    Donchian40HtfEmaSlopeStrategy,
 )
 
 # Auto-register Phase 3A initial candidates
@@ -73,6 +76,11 @@ ResearchStrategyRegistry.register_variant(
     {"strategy_id": "RS_MR_BB_RSI_25_STD_V1", "parameters": {"bb_period": 20, "bb_std": 2.5, "rsi_oversold": 28.0}}
 )
 
+# Register Phase 3C Pre-Registered Strategy Candidates
+ResearchStrategyRegistry.register(Donchian40ControlStrategy)
+ResearchStrategyRegistry.register(Donchian40AdxStrategy)
+ResearchStrategyRegistry.register(Donchian40HtfEmaSlopeStrategy)
+
 __all__ = [
     "BaseResearchStrategy",
     "StrategyMetadata",
@@ -84,4 +92,7 @@ __all__ = [
     "DualEmaAtrTrendStrategy",
     "TsMomBreakoutStrategy",
     "BbRsiMeanReversionStrategy",
+    "Donchian40ControlStrategy",
+    "Donchian40AdxStrategy",
+    "Donchian40HtfEmaSlopeStrategy",
 ]
