@@ -105,7 +105,7 @@ class ResearchEvaluator:
         tf_candidates = [preferred_timeframe] if preferred_timeframe else []
         if symbol in self.SUPPORTED_CRYPTO:
             if symbol == "BTCUSDT":
-                tf_candidates.extend(["4h", "1h", "1d"])
+                tf_candidates.extend(["1h", "4h", "1d"])
             else:
                 tf_candidates.extend(["1h", "4h"])
         else:

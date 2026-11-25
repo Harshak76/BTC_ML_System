@@ -130,12 +130,27 @@ class ResearchSimulationRunner:
 
         latest_prices = {sym: float(prepared_dfs[sym]["close"].iloc[0]) for sym in prepared_dfs}
 
+        # Mark tracking for research integrity
+        actual_observations = {sym: 0 for sym in prepared_dfs}
+        carried_forward_marks = {sym: 0 for sym in prepared_dfs}
+        current_mark_age = {sym: 0 for sym in prepared_dfs}
+        max_mark_age = {sym: 0 for sym in prepared_dfs}
+        signal_counts = {sym: 0 for sym in prepared_dfs}
+        execution_counts = {sym: 0 for sym in prepared_dfs}
+
         # 3. Chronological Step Loop
         for t in sorted_timeline:
             # A. Update latest prices for available assets
             for sym, df in prepared_dfs.items():
                 if t in df.index:
                     latest_prices[sym] = float(df.loc[t, "close"])
+                    actual_observations[sym] += 1
+                    current_mark_age[sym] = 0
+                else:
+                    carried_forward_marks[sym] += 1
+                    current_mark_age[sym] += 1
+                    if current_mark_age[sym] > max_mark_age[sym]:
+                        max_mark_age[sym] = current_mark_age[sym]
 
             # Current portfolio equity mark-to-market
             pos_equity = sum(pos["quantity"] * latest_prices[pos["symbol"]] for pos in open_positions.values())
@@ -191,6 +206,8 @@ class ResearchSimulationRunner:
                         # Anchoring: stop loss and take profit are anchored to the actual fill price
                         actual_sl = fill_price - sl_dist
                         actual_tp = fill_price + tp_dist
+
+                        execution_counts[sym] += 1
 
                         open_positions[sym] = {
                             "symbol": sym,
@@ -286,6 +303,8 @@ class ResearchSimulationRunner:
                 if t in df_sym.index and sym not in open_positions and sym not in pending_orders:
                     row = df_sym.loc[t]
                     sig = int(row.get("signal", 0))
+                    if sig == 1:
+                        signal_counts[sym] += 1
                     if sig == 1 and len(open_positions) + len(pending_orders) < self.max_open_positions:
                         c_price = float(row["close"])
                         raw_sl = float(row.get("stop_loss_price", c_price * 0.98))
@@ -335,6 +354,21 @@ class ResearchSimulationRunner:
         # Unit enforcement validation
         self.strategy.validate_return_units(periodic_returns, ReturnUnit.PERCENTAGE_POINTS)
 
+        total_steps = len(sorted_timeline)
+        stale_pct = {
+            sym: (carried_forward_marks[sym] / total_steps) * 100.0 if total_steps > 0 else 0.0
+            for sym in prepared_dfs
+        }
+        mark_alignment_stats = {
+            "total_timeline_steps": total_steps,
+            "actual_observations": actual_observations,
+            "carried_forward_marks": carried_forward_marks,
+            "max_mark_age_hours": max_mark_age,
+            "stale_valuation_pct": stale_pct,
+            "signal_counts": signal_counts,
+            "execution_counts": execution_counts
+        }
+
         return {
             "strategy_id": self.strategy.metadata.strategy_id,
             "strategy_name": self.strategy.metadata.strategy_name,
@@ -346,5 +380,6 @@ class ResearchSimulationRunner:
             "equity_curve": equity_curve,
             "periodic_returns_pct": periodic_returns,
             "return_unit": ReturnUnit.PERCENTAGE_POINTS.value,
+            "mark_alignment_stats": mark_alignment_stats,
             "is_broker_connected": False  # Strictly offline
         }
